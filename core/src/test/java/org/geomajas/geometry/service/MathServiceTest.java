@@ -71,6 +71,19 @@ public class MathServiceTest {
 			// Test passed.
 		}
 	}
+	
+	@Test
+	public void testIntersectsTouches() {
+		// touching is not intersecting !!!
+		Assert.assertFalse(MathService.intersectsLineSegment(c1, c2, (Coordinate) c2.clone(), c3));
+	}
+	
+	@Test
+	public void testIntersectsOverlaps() {
+		// overlapping is intersecting !!!
+		Assert.assertTrue(MathService.intersectsLineSegment(new Coordinate(0, 0),new Coordinate(5, 5),new Coordinate(2, 2),new Coordinate(7, 7)));
+		Assert.assertTrue(MathService.intersectsLineSegment(new Coordinate(0, 0),new Coordinate(-10, -20),new Coordinate(0, 0),new Coordinate(-10, -20)));
+	}
 
 	@Test
 	public void testLineIntersection() {

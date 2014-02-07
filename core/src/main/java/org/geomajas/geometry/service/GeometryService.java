@@ -44,8 +44,7 @@ public final class GeometryService {
 	/**
 	 * Create a clone of the given geometry.
 	 * 
-	 * @param geometry
-	 *            The geometry to clone.
+	 * @param geometry The geometry to clone.
 	 * @return The new clone geometry.
 	 */
 	public static Geometry clone(Geometry geometry) {
@@ -73,8 +72,7 @@ public final class GeometryService {
 	/**
 	 * Get the closest {@link Bbox} around the geometry.
 	 * 
-	 * @param geometry
-	 *            The geometry to calculate a bounding box for.
+	 * @param geometry The geometry to calculate a bounding box for.
 	 * @return The bounding box for the given geometry.
 	 */
 	public static Bbox getBounds(Geometry geometry) {
@@ -123,8 +121,7 @@ public final class GeometryService {
 	/**
 	 * Transform the given bounding box into a polygon geometry.
 	 * 
-	 * @param bounds
-	 *            The bounding box to transform.
+	 * @param bounds The bounding box to transform.
 	 * @return Returns the polygon equivalent of the given bounding box.
 	 */
 	public static Geometry toPolygon(Bbox bounds) {
@@ -143,11 +140,24 @@ public final class GeometryService {
 	}
 
 	/**
+	 * Create a new linestring based on the specified coordinates.
+	 * 
+	 * @param c1 first coordinate
+	 * @param c2 second coordinate
+	 * @return the linestring
+	 * @since 1.2.0
+	 */
+	public static Geometry toLineString(Coordinate c1, Coordinate c2) {
+		Geometry lineString = new Geometry(Geometry.LINE_STRING, 0, -1);
+		lineString.setCoordinates(new Coordinate[] { (Coordinate) c1.clone(), (Coordinate) c2.clone() });
+		return lineString;
+	}
+
+	/**
 	 * Return the total number of coordinates within the geometry. This add up all coordinates within the
 	 * sub-geometries.
 	 * 
-	 * @param geometry
-	 *            The geometry to calculate the total number of points for.
+	 * @param geometry The geometry to calculate the total number of points for.
 	 * @return The total number of coordinates within this geometry.
 	 */
 	public static int getNumPoints(Geometry geometry) {
@@ -169,8 +179,7 @@ public final class GeometryService {
 	/**
 	 * This geometry is empty if there are no geometries/coordinates stored inside.
 	 * 
-	 * @param geometry
-	 *            The geometry to check.
+	 * @param geometry The geometry to check.
 	 * @return true or false.
 	 */
 	public static boolean isEmpty(Geometry geometry) {
@@ -181,8 +190,7 @@ public final class GeometryService {
 	/**
 	 * Basically this function checks if the geometry is self-intersecting or not.
 	 * 
-	 * @param geometry
-	 *            The geometry to check.
+	 * @param geometry The geometry to check.
 	 * @return True or false. True if there are no self-intersections in the geometry.
 	 */
 	public static boolean isSimple(Geometry geometry) {
@@ -213,8 +221,9 @@ public final class GeometryService {
 			if (coords1.size() > 1 && coords2.size() > 1) {
 				for (int i = 0; i < coords2.size() - 1; i++) {
 					for (int j = 0; j < coords1.size() - 1; j++) {
-						if (MathService.intersectsLineSegment(coords2.get(i), coords2.get(i + 1), coords1.get(j),
-								coords1.get(j + 1))) {
+						if ((i != j)
+								&& MathService.intersectsLineSegment(coords2.get(i), coords2.get(i + 1),
+										coords1.get(j), coords1.get(j + 1))) {
 							return false;
 						}
 					}
@@ -225,10 +234,38 @@ public final class GeometryService {
 	}
 
 	/**
+	 * Validates a geometry, focusing on changes at a specific sub-level of the geometry. The sublevel is indicated by
+	 * passing an array of indexes. The array should uniquely determine a coordinate or subgeometry (linear ring) by
+	 * recursing through the geometry tree.
+	 * 
+	 * @param geometry The geometry to check.
+	 * @param index an array of indexes, points to vertex, ring, polygon, etc...
+	 * @return True or false.
+	 * @since 1.2.0
+	 */
+	public static boolean isValid(Geometry geometry, int[] index) {
+		if (Geometry.POINT.equals(geometry.getGeometryType())) {
+			return true;
+		} else if (Geometry.LINE_STRING.equals(geometry.getGeometryType())) {
+			return isEmpty(geometry) || (geometry.getCoordinates().length > 1);
+		} else if (Geometry.LINEAR_RING.equals(geometry.getGeometryType())) {
+			return isValidLinearRing(geometry, index);
+		} else if (Geometry.POLYGON.equals(geometry.getGeometryType())) {
+			return isValidPolygon(geometry, index);
+		} else if (Geometry.MULTI_POINT.equals(geometry.getGeometryType())) {
+			return true;
+		} else if (Geometry.MULTI_LINE_STRING.equals(geometry.getGeometryType())) {
+			return isValidMultiLineString(geometry);
+		} else if (Geometry.MULTI_POLYGON.equals(geometry.getGeometryType())) {
+			return isValidMultiPolygon(geometry, index);
+		}
+		return false;
+	}
+
+	/**
 	 * Is the geometry a valid one? Different rules apply to different geometry types.
 	 * 
-	 * @param geometry
-	 *            The geometry to check.
+	 * @param geometry The geometry to check.
 	 * @return True or false.
 	 */
 	public static boolean isValid(Geometry geometry) {
@@ -253,10 +290,8 @@ public final class GeometryService {
 	/**
 	 * Calculate whether or not two given geometries intersect each other.
 	 * 
-	 * @param one
-	 *            The first geometry to check for intersection with the second.
-	 * @param two
-	 *            The second geometry to check for intersection with the first.
+	 * @param one The first geometry to check for intersection with the second.
+	 * @param two The second geometry to check for intersection with the first.
 	 * @return Returns true or false.
 	 */
 	public static boolean intersects(Geometry one, Geometry two) {
@@ -290,8 +325,7 @@ public final class GeometryService {
 	/**
 	 * Return the area of the geometry. If a polygon should contain a hole, the area of such a hole will be subtracted.
 	 * 
-	 * @param geometry
-	 *            The other geometry to calculate the area for.
+	 * @param geometry The other geometry to calculate the area for.
 	 * @return The total area within this geometry.
 	 */
 	public static double getArea(Geometry geometry) {
@@ -301,8 +335,7 @@ public final class GeometryService {
 	/**
 	 * Return the length of the geometry. This adds up the length of all edges within the geometry.
 	 * 
-	 * @param geometry
-	 *            The other geometry to calculate the length for.
+	 * @param geometry The other geometry to calculate the length for.
 	 * @return The total length of all edges of the given geometry.
 	 */
 	public static double getLength(Geometry geometry) {
@@ -327,8 +360,7 @@ public final class GeometryService {
 	/**
 	 * The centroid is also known as the "center of gravity" or the "center of mass".
 	 * 
-	 * @param geometry
-	 *            The other geometry to calculate the centroid for.
+	 * @param geometry The other geometry to calculate the centroid for.
 	 * 
 	 * @return Return the center point.
 	 */
@@ -354,10 +386,8 @@ public final class GeometryService {
 	/**
 	 * Return the minimal distance between a coordinate and any vertex of a geometry.
 	 * 
-	 * @param geometry
-	 *            The other geometry to calculate the distance for.
-	 * @param coordinate
-	 *            The coordinate for which to calculate the distance to the geometry.
+	 * @param geometry The other geometry to calculate the distance for.
+	 * @param coordinate The coordinate for which to calculate the distance to the geometry.
 	 * @return Return the minimal distance
 	 */
 	public static double getDistance(Geometry geometry, Coordinate coordinate) {
@@ -390,7 +420,7 @@ public final class GeometryService {
 		}
 		return minDistance;
 	}
-	
+
 	/**
 	 * Perform a matrix transformation of a geometry. The geometry passed will be left untouched.
 	 * 
@@ -421,7 +451,7 @@ public final class GeometryService {
 			}
 		}
 	}
-	
+
 	private static double getSignedArea(Geometry geometry) {
 		double area = 0;
 		if (geometry.getGeometries() != null) {
@@ -530,11 +560,11 @@ public final class GeometryService {
 		for (int i = 0; i < geometry.getGeometries().length; i++) {
 			coordinates[i] = getCentroidLineString(geometry.getGeometries()[i]);
 		}
-		
+
 		if (1 == coordinates.length) {
 			return coordinates[0];
 		}
-		
+
 		for (int i = 0; i < coordinates.length - 1; i++) {
 			double length = coordinates[i].distance(coordinates[i + 1]);
 			totalLength += length;
@@ -557,7 +587,7 @@ public final class GeometryService {
 		for (int i = 0; i < geometry.getGeometries().length; i++) {
 			coordinates[i] = getCentroidPolygon(geometry.getGeometries()[i]);
 		}
-		if (coordinates.length == 1) {  // Fix for GEOM-14.
+		if (coordinates.length == 1) { // Fix for GEOM-14.
 			return coordinates[0];
 		}
 		for (int i = 0; i < coordinates.length - 1; i++) {
@@ -593,13 +623,41 @@ public final class GeometryService {
 		}
 		for (int i = 0; i < coordinates.length - 1; i++) {
 			for (int j = 0; j < coordinates.length - 1; j++) {
-				if (MathService.intersectsLineSegment(coordinates[i], coordinates[i + 1], coordinates[j],
-						coordinates[j + 1])) {
+				if ((i != j)
+						&& MathService.intersectsLineSegment(coordinates[i], coordinates[i + 1], coordinates[j],
+								coordinates[j + 1])) {
 					return false;
 				}
 			}
 		}
 		return true;
+	}
+
+	private static boolean isValidLinearRing(Geometry geometry, int[] index) {
+		if (isEmpty(geometry)) {
+			return true;
+		}
+		if (!isClosed(geometry)) {
+			return false;
+		}
+		Coordinate[] coordinates = geometry.getCoordinates();
+		if (coordinates.length < 4) {
+			return false;
+		}
+		if (index.length == 1 && index[0] < coordinates.length - 1) {
+			int i1 = index[0];
+			for (int i = 0; i < coordinates.length - 1; i++) {
+				if (i != i1) {
+					if (MathService.intersectsLineSegment(coordinates[i], coordinates[i + 1], coordinates[i1],
+							coordinates[i1 + 1])) {
+						return false;
+					}
+				}
+			}
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	private static boolean isValidPolygon(Geometry geometry) {
@@ -614,6 +672,78 @@ public final class GeometryService {
 				if (!ring1.equals(ring2) && intersects(ring1, ring2)) {
 					return false;
 				}
+			}
+		}
+		return true;
+	}
+
+	private static boolean isValidPolygon(Geometry geometry, int[] index) {
+		if (isEmpty(geometry)) {
+			return true;
+		} else if (index.length == 1) {
+			// a new ring has been added
+			int rIndex = index[0];
+			if (rIndex < geometry.getGeometries().length) {
+				// test the ring
+				Geometry ring = geometry.getGeometries()[rIndex];
+				if (!isValidLinearRing(ring)) {
+					return false;
+				}
+				// test containment
+				if (rIndex == 0) {
+					// shell contains all holes
+					for (Geometry ring2 : geometry.getGeometries()) {
+						if (ring != ring2 && !ringContains(ring, ring2)) {
+							return false;
+						}
+					}
+				} else {
+					// hole contained by shell
+					Geometry shell = geometry.getGeometries()[0];
+					if (!ringContains(shell, ring)) {
+						return false;
+					}
+					// no intersection with other holes
+					for (Geometry ring2 : geometry.getGeometries()) {
+						if (shell != ring2 && intersects(ring, ring2)) {
+							return false;
+						}
+					}
+				}
+				return true;
+			} else {
+				return false;
+			}
+		} else if (index.length == 2) {
+			// a new line segment has been created (by addition or removal of a vertex)
+			int rIndex = index[0];
+			int cIndex = index[1];
+			if (rIndex < geometry.getGeometries().length) {
+				// test the ring
+				Geometry ring = geometry.getGeometries()[rIndex];
+				if (!isValidLinearRing(ring, new int[] { cIndex })) {
+					return false;
+				}
+				// test intersection with other rings
+				Geometry segment = toLineString(ring.getCoordinates()[cIndex], ring.getCoordinates()[cIndex + 1]);
+				for (Geometry ring2 : geometry.getGeometries()) {
+					if (!ring.equals(ring2) && intersects(segment, ring2)) {
+						return false;
+					}
+				}
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+
+	private static boolean ringContains(Geometry ring1, Geometry ring2) {
+		for (Coordinate c : ring2.getCoordinates()) {
+			if (!MathService.isWithin(ring1, c)) {
+				return false;
 			}
 		}
 		return true;
@@ -645,6 +775,47 @@ public final class GeometryService {
 			}
 		}
 		return true;
+	}
+
+	private static boolean isValidMultiPolygon(Geometry geometry, int[] index) {
+		if (isEmpty(geometry)) {
+			return true;
+		} else if (index.length == 1) {
+			// a new polygon has been added
+			int pIndex = index[0];
+			if (pIndex < geometry.getGeometries().length) {
+				// test the polygon
+				Geometry poly = geometry.getGeometries()[pIndex];
+				if (!isValidPolygon(poly)) {
+					return false;
+				}
+				// no intersection with other polygons
+				for (Geometry poly2 : geometry.getGeometries()) {
+					if (poly != poly2 && intersects(poly, poly2)) {
+						return false;
+					}
+				}
+				return true;
+			} else {
+				return false;
+			}
+		} else if (index.length > 2) {
+			// a new ring or vertex has been added/deleted
+			int pIndex = index[0];
+			if (pIndex < geometry.getGeometries().length) {
+				// test the poly
+				Geometry poly = geometry.getGeometries()[pIndex];
+				int[] subIndex = new int[index.length - 1];
+				for (int i = 0; i < subIndex.length; i++) {
+					subIndex[i] = index[i + 1];
+				}
+				return isValid(poly, subIndex);
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
 	}
 
 	// We assume neither is null or empty.
@@ -713,7 +884,7 @@ public final class GeometryService {
 		}
 		return false;
 	}
-	
+
 	private static void transformInplace(Geometry geometry, Matrix matrix) {
 		if (geometry.getGeometries() != null) {
 			for (Geometry g : geometry.getGeometries()) {
