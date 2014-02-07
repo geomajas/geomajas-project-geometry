@@ -20,7 +20,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.geom.PrecisionModel;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKTReader;
 
 /**
  * <p>
@@ -54,9 +57,10 @@ public class GeometryServicePolygonTest {
 
 	/**
 	 * Creates polygons with a single hole in them.
+	 * @throws ParseException 
 	 */
 	@Before
-	public void setUp() {
+	public void setUp() throws ParseException {
 		Geometry gwtShell = new Geometry(Geometry.LINEAR_RING, SRID, 0);
 		gwtShell.setCoordinates(new Coordinate[] { new Coordinate(10.0, 10.0), new Coordinate(20.0, 10.0),
 				new Coordinate(20.0, 20.0), new Coordinate(10.0, 10.0) });
@@ -72,8 +76,8 @@ public class GeometryServicePolygonTest {
 		com.vividsolutions.jts.geom.LinearRing jtsShell = jtsFactory
 				.createLinearRing(new com.vividsolutions.jts.geom.Coordinate[] {
 						new com.vividsolutions.jts.geom.Coordinate(10.0, 10.0),
-						new com.vividsolutions.jts.geom.Coordinate(20.0, 10.0),
 						new com.vividsolutions.jts.geom.Coordinate(20.0, 20.0),
+						new com.vividsolutions.jts.geom.Coordinate(20.0, 10.0),
 						new com.vividsolutions.jts.geom.Coordinate(10.0, 10.0) });
 		com.vividsolutions.jts.geom.LinearRing jtsHole = jtsFactory
 				.createLinearRing(new com.vividsolutions.jts.geom.Coordinate[] {
@@ -120,8 +124,25 @@ public class GeometryServicePolygonTest {
 	}
 
 	@Test
-	public void isValid() {
-		// Assert.assertEquals(jts.isValid(), geometryService.isValid(gwt));
+	public void isValid() throws WktException {
+		Assert.assertEquals(jts.isValid(), GeometryService.isValid(gwt));
+		// invalid (self-intersect)
+		Geometry p = WktService.toGeometry("POLYGON((0 0, 1 0, 0 1, 1 1, 0 0))");
+		Assert.assertFalse(GeometryService.isValid(p));
+		// invalid (intersecting holes)
+		p = WktService.toGeometry("POLYGON((-1 -1, 2 -1, 2 2, -1 2, -1 -1),(0.5 0, 1 1, 0 1, 0.5 0),(0.5 1, 1 0, 0 0, 0.5 1))");
+		Assert.assertFalse(GeometryService.isValid(p));
+	}
+
+	@Test
+	public void isValid2() throws WktException {
+		// invalid (intersecting holes)
+		Geometry p = WktService.toGeometry("POLYGON((-1 -1, 2 -1, 2 2, -1 2, -1 -1),(0.5 0, 1 1, 0 1, 0.5 0),(0.5 1, 1 0, 0 0, 0.5 1))");
+		Assert.assertFalse(GeometryService.isValid(p));
+		Assert.assertFalse(GeometryService.isValid(p, new int[] { 1, 0 }));
+		// invalid hole outside shell
+		p = WktService.toGeometry("POLYGON((0 0, 1 0, 1 1, 0 1, 0 0),(3 3, 3 3, 3 3, 3 3))");
+		Assert.assertFalse(GeometryService.isValid(p, new int[] { 1 }));
 	}
 
 	@Test
@@ -164,7 +185,7 @@ public class GeometryServicePolygonTest {
 	public void getLength() {
 		Assert.assertEquals(jts.getLength(), GeometryService.getLength(gwt), DELTA);
 	}
-	
+
 	@Test
 	public void transformTest() throws WktException {
 		Geometry transformed = GeometryService.transform(gwt, matrix);

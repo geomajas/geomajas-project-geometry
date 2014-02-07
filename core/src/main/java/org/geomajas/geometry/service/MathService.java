@@ -28,48 +28,63 @@ public final class MathService {
 	}
 
 	/**
-	 * Calculates whether or not 2 line-segments intersect.
+	 * Calculates whether or not 2 line-segments intersect. The definition we use is that line segments intersect if
+	 * they either cross or overlap. If they touch in 1 end point, they do not intersect. This definition is most useful
+	 * for checking polygon validity, as touching rings in 1 point are allowed, but crossing or overlapping not.
 	 * 
-	 * @param c1
-	 *            First coordinate of the first line-segment.
-	 * @param c2
-	 *            Second coordinate of the first line-segment.
-	 * @param c3
-	 *            First coordinate of the second line-segment.
-	 * @param c4
-	 *            Second coordinate of the second line-segment.
+	 * @param a First coordinate of the first line-segment.
+	 * @param b Second coordinate of the first line-segment.
+	 * @param c First coordinate of the second line-segment.
+	 * @param d Second coordinate of the second line-segment.
 	 * @return Returns true or false.
 	 */
-	public static boolean intersectsLineSegment(Coordinate c1, Coordinate c2, Coordinate c3, Coordinate c4) {
-		double x1 = c1.getX();
-		double y1 = c1.getY();
-		double x2 = c2.getX();
-		double y2 = c2.getY();
-		double x3 = c3.getX();
-		double y3 = c3.getY();
-		double x4 = c4.getX();
-		double y4 = c4.getY();
-
-		double denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
-		if (denom == 0) {
+	public static boolean intersectsLineSegment(Coordinate a, Coordinate b, Coordinate c, Coordinate d) {
+		// check single-point segment: these never intersect
+		if ((a.getX() == b.getX() && a.getY() == b.getY()) || (c.getX() == d.getX() && c.getY() == d.getY())) {
 			return false;
 		}
-		double u1 = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
-		double u2 = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
-		return (u1 > 0 && u1 < 1 && u2 > 0 && u2 < 1);
+		double c1 = cross(a, c, a, b);
+		double c2 = cross(a, b, c, d);
+		if (c1 == 0 && c2 == 0) {
+			// colinear, only intersecting if overlapping (touch is ok)
+			double xmin = Math.min(a.getX(), b.getX());
+			double ymin = Math.min(a.getY(), b.getY());
+			double xmax = Math.max(a.getX(), b.getX());
+			double ymax = Math.max(a.getY(), b.getY());
+			// check first point of last segment in bounding box of first segment
+			if (c.getX() > xmin && c.getX() < xmax && c.getY() > ymin && c.getY() < ymax) {
+				return true;
+				// check last point of last segment in bounding box of first segment
+			} else if (d.getX() > xmin && d.getX() < xmax && d.getY() > ymin && d.getY() < ymax) {
+				return true;
+				// check same segment
+			} else {
+				return c.getX() >= xmin && c.getX() <= xmax && c.getY() >= ymin && c.getY() <= ymax & d.getX() >= xmin
+						&& d.getX() <= xmax && d.getY() >= ymin && d.getY() <= ymax;
+			}
+		}
+		if (c2 == 0) {
+			// segments are parallel but not colinear
+			return false;
+		}
+		// not parallel, classical test
+		double u = c1 / c2;
+		double t = cross(a, c, c, d) / c2;
+		return (t > 0) && (t < 1) && (u > 0) && (u < 1);
+	}
+
+	// cross-product of 2 vectors
+	private static double cross(Coordinate a1, Coordinate a2, Coordinate b1, Coordinate b2) {
+		return (a2.getX() - a1.getX()) * (b2.getY() - b1.getY()) - (a2.getY() - a1.getY()) * (b2.getX() - b1.getX());
 	}
 
 	/**
 	 * Calculates the intersection point of 2 lines.
 	 * 
-	 * @param c1
-	 *            First coordinate of the first line.
-	 * @param c2
-	 *            Second coordinate of the first line.
-	 * @param c3
-	 *            First coordinate of the second line.
-	 * @param c4
-	 *            Second coordinate of the second line.
+	 * @param c1 First coordinate of the first line.
+	 * @param c2 Second coordinate of the first line.
+	 * @param c3 First coordinate of the second line.
+	 * @param c4 Second coordinate of the second line.
 	 * @return Returns a coordinate.
 	 */
 	public static Coordinate lineIntersection(Coordinate c1, Coordinate c2, Coordinate c3, Coordinate c4) {
@@ -94,14 +109,10 @@ public final class MathService {
 	/**
 	 * Calculates the intersection point of 2 line segments.
 	 * 
-	 * @param c1
-	 *            Start point of the first line segment.
-	 * @param c2
-	 *            End point of the first line segment.
-	 * @param c3
-	 *            Start point of the second line segment.
-	 * @param c4
-	 *            End point of the second line segment.
+	 * @param c1 Start point of the first line segment.
+	 * @param c2 End point of the first line segment.
+	 * @param c3 Start point of the second line segment.
+	 * @param c4 End point of the second line segment.
 	 * @return Returns a coordinate or null if not a single intersection point.
 	 */
 	public static Coordinate lineSegmentIntersection(Coordinate c1, Coordinate c2, Coordinate c3, Coordinate c4) {
@@ -136,10 +147,8 @@ public final class MathService {
 	/**
 	 * Distance between 2 points.
 	 * 
-	 * @param c1
-	 *            First coordinate
-	 * @param c2
-	 *            Second coordinate
+	 * @param c1 First coordinate
+	 * @param c2 Second coordinate
 	 * @return distance between given points
 	 */
 	public static double distance(Coordinate c1, Coordinate c2) {
@@ -152,12 +161,9 @@ public final class MathService {
 	 * Distance between a point and a line segment. This method looks at the line segment c1-c2, it does not regard it
 	 * as a line. This means that the distance to c is calculated to a point between c1 and c2.
 	 * 
-	 * @param c1
-	 *            First coordinate of the line segment.
-	 * @param c2
-	 *            Second coordinate of the line segment.
-	 * @param c
-	 *            Coordinate to calculate distance to line from.
+	 * @param c1 First coordinate of the line segment.
+	 * @param c2 Second coordinate of the line segment.
+	 * @param c Coordinate to calculate distance to line from.
 	 * @return distance between point and line segment
 	 */
 	public static double distance(Coordinate c1, Coordinate c2, Coordinate c) {
@@ -168,12 +174,9 @@ public final class MathService {
 	 * Calculate which point on a line segment is nearest to the given coordinate. Will be perpendicular or one of the
 	 * end-points.
 	 * 
-	 * @param c1
-	 *            First coordinate of the line segment.
-	 * @param c2
-	 *            Second coordinate of the line segment.
-	 * @param c
-	 *            The coordinate to search the nearest point for.
+	 * @param c1 First coordinate of the line segment.
+	 * @param c2 Second coordinate of the line segment.
+	 * @param c The coordinate to search the nearest point for.
 	 * @return The point on the line segment nearest to the given coordinate.
 	 */
 	public static Coordinate nearest(Coordinate c1, Coordinate c2, Coordinate c) {
@@ -201,10 +204,8 @@ public final class MathService {
 	/**
 	 * Does a certain coordinate touch a given geometry?
 	 * 
-	 * @param geometry
-	 *            The geometry to check against.
-	 * @param coordinate
-	 *            The position to check.
+	 * @param geometry The geometry to check against.
+	 * @param coordinate The position to check.
 	 * @return Returns true if the coordinate touches the geometry.
 	 */
 	public static boolean touches(Geometry geometry, Coordinate coordinate) {
@@ -242,11 +243,9 @@ public final class MathService {
 	/**
 	 * Is a certain coordinate within a given geometry?
 	 * 
-	 * @param geometry
-	 *            The geometry to check against. Only geometries that contain closed rings can return true (i.e.
-	 *            LinearRing, Polygon, MultiPolygon).
-	 * @param coordinate
-	 *            The position that is possibly within the geometry.
+	 * @param geometry The geometry to check against. Only geometries that contain closed rings can return true (i.e.
+	 *        LinearRing, Polygon, MultiPolygon).
+	 * @param coordinate The position that is possibly within the geometry.
 	 * @return Returns true if the coordinate is within the geometry.
 	 */
 	public static boolean isWithin(Geometry geometry, Coordinate coordinate) {
@@ -316,12 +315,11 @@ public final class MathService {
 			// coordinate arrays of a polygon....(if they all have an equal number of coordinates)
 
 			// some checks to try and avoid the expensive intersect calculation.
-			if (coordinate.getY() > Math.min(c1.getY(), c2.getY()) &&
-					coordinate.getY() <= Math.max(c1.getY(), c2.getY()) &&
-					coordinate.getX() <= Math.max(c1.getX(), c2.getX()) &&
-					c1.getY() != c2.getY()) {
-				double xIntercept = (coordinate.getY() - c1.getY()) * (c2.getX() - c1.getX())
-						/ (c2.getY() - c1.getY()) + c1.getX();
+			if (coordinate.getY() > Math.min(c1.getY(), c2.getY())
+					&& coordinate.getY() <= Math.max(c1.getY(), c2.getY())
+					&& coordinate.getX() <= Math.max(c1.getX(), c2.getX()) && c1.getY() != c2.getY()) {
+				double xIntercept = (coordinate.getY() - c1.getY()) * (c2.getX() - c1.getX()) / (c2.getY() - c1.getY())
+						+ c1.getX();
 				if (c1.getX() == c2.getX() || coordinate.getX() <= xIntercept) {
 					counter++;
 				}
