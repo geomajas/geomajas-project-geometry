@@ -137,12 +137,16 @@ public class GeometryServicePolygonTest {
 	@Test
 	public void isValid2() throws WktException {
 		// invalid (intersecting holes)
-		Geometry p = WktService.toGeometry("POLYGON((-1 -1, 2 -1, 2 2, -1 2, -1 -1),(0.5 0, 1 1, 0 1, 0.5 0),(0.5 1, 1 0, 0 0, 0.5 1))");
+		Geometry p = WktService
+				.toGeometry("POLYGON((-1 -1, 2 -1, 2 2, -1 2, -1 -1),(0.5 0, 1 1, 0 1, 0.5 0),(0.5 1, 1 0, 0 0, 0.5 1))");
 		Assert.assertFalse(GeometryService.isValid(p));
 		Assert.assertFalse(GeometryService.isValid(p, new int[] { 1, 0 }));
 		// invalid hole outside shell
 		p = WktService.toGeometry("POLYGON((0 0, 1 0, 1 1, 0 1, 0 0),(3 3, 3 3, 3 3, 3 3))");
 		Assert.assertFalse(GeometryService.isValid(p, new int[] { 1 }));
+		// invalid (self-intersect)
+		p = WktService.toGeometry("POLYGON((2 0, 1 0, 1 1, 0 1, 2 0))");
+		Assert.assertFalse(GeometryService.isValid(p, new int[] { 0, 0 }));
 	}
 
 	@Test
