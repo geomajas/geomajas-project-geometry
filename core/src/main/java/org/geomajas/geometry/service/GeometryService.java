@@ -700,7 +700,7 @@ public final class GeometryService {
 			if (rIndex < geometry.getGeometries().length) {
 				Geometry ring = geometry.getGeometries()[rIndex];
 				// our editing controller starts with an empty ring
-				if(isEmpty(ring)) {
+				if (isEmpty(ring)) {
 					return true;
 				}
 				// test containment
@@ -735,11 +735,11 @@ public final class GeometryService {
 			if (rIndex < geometry.getGeometries().length) {
 				// test the ring
 				Geometry ring = geometry.getGeometries()[rIndex];
-				if(isEmpty(ring)) {
+				if (isEmpty(ring)) {
 					return true;
 				}
 				// if we come from an empty ring, test the containment
-				if(ring.getCoordinates().length < 3 && rIndex > 0) {
+				if (ring.getCoordinates().length < 3 && rIndex > 0) {
 					// hole contained by shell
 					Geometry shell = geometry.getGeometries()[0];
 					if (!ringContains(shell, ring)) {
@@ -756,7 +756,7 @@ public final class GeometryService {
 					return false;
 				}
 				// test intersection with other rings
-				if(cIndex == ring.getCoordinates().length -1) {
+				if (cIndex == ring.getCoordinates().length - 1) {
 					cIndex--;
 				}
 				Geometry segment = toLineString(ring.getCoordinates()[cIndex], ring.getCoordinates()[cIndex + 1]);
