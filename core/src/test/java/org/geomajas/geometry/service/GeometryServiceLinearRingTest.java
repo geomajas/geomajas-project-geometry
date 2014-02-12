@@ -132,11 +132,7 @@ public class GeometryServiceLinearRingTest {
 		ring = WktService.toGeometry("POLYGON((0 0, 1 0, 0 1, 1 1, 0 0))").getGeometries()[0];
 		Assert.assertFalse(GeometryService.isValid(ring));
 		for (int i = 0; i < 4; i++) {
-			if (i == 1 || i == 3) {
-				Assert.assertFalse(GeometryService.isValid(ring, new int[] { i }));
-			} else {
-				Assert.assertTrue(GeometryService.isValid(ring, new int[] { i }));
-			}
+			Assert.assertFalse(GeometryService.isValid(ring, new int[] { i }));
 		}
 	}
 

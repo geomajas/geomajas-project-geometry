@@ -236,7 +236,8 @@ public final class GeometryService {
 	/**
 	 * Validates a geometry, focusing on changes at a specific sub-level of the geometry. The sublevel is indicated by
 	 * passing an array of indexes. The array should uniquely determine a coordinate or subgeometry (linear ring) by
-	 * recursing through the geometry tree.
+	 * recursing through the geometry tree. The only checks are on intersection and containment, we don't check on too
+	 * few coordinates as we want to support incremental creation of polygons.
 	 * 
 	 * @param geometry The geometry to check.
 	 * @param index an array of indexes, points to vertex, ring, polygon, etc...
@@ -642,15 +643,28 @@ public final class GeometryService {
 		}
 		Coordinate[] coordinates = geometry.getCoordinates();
 		if (coordinates.length < 4) {
-			return false;
+			return true;
 		}
-		if (index.length == 1 && index[0] < coordinates.length - 1) {
-			int i1 = index[0];
-			for (int i = 0; i < coordinates.length - 1; i++) {
-				if (i != i1) {
-					if (MathService.intersectsLineSegment(coordinates[i], coordinates[i + 1], coordinates[i1],
-							coordinates[i1 + 1])) {
-						return false;
+		if (index.length == 1 && index[0] <= coordinates.length - 1) {
+			// find the 2 segments connected to index[0]
+			int i1 = 0;
+			int i2 = 0;
+			if (index[0] == (coordinates.length - 1) || index[0] == 0) {
+				i1 = 0;
+				i2 = coordinates.length - 2;
+			} else {
+				i1 = index[0];
+				i2 = index[0] - 1;
+			}
+			// check 2 segments: i -> i + 1 and i - 1 -> i
+			int[] is = new int[] { i1, i2 };
+			for (int j = 0; j < coordinates.length - 1; j++) {
+				for (int i : is) {
+					if (i != j) {
+						if (MathService.intersectsLineSegment(coordinates[i], coordinates[i + 1], coordinates[j],
+								coordinates[j + 1])) {
+							return false;
+						}
 					}
 				}
 			}
@@ -681,13 +695,13 @@ public final class GeometryService {
 		if (isEmpty(geometry)) {
 			return true;
 		} else if (index.length == 1) {
-			// a new ring has been added
+			// a new (supposedly valid) ring has been added
 			int rIndex = index[0];
 			if (rIndex < geometry.getGeometries().length) {
-				// test the ring
 				Geometry ring = geometry.getGeometries()[rIndex];
-				if (!isValidLinearRing(ring)) {
-					return false;
+				// our editing controller starts with an empty ring
+				if(isEmpty(ring)) {
+					return true;
 				}
 				// test containment
 				if (rIndex == 0) {
@@ -705,7 +719,7 @@ public final class GeometryService {
 					}
 					// no intersection with other holes
 					for (Geometry ring2 : geometry.getGeometries()) {
-						if (shell != ring2 && intersects(ring, ring2)) {
+						if (shell != ring2 && ring != ring2 && intersects(ring, ring2)) {
 							return false;
 						}
 					}
@@ -721,10 +735,30 @@ public final class GeometryService {
 			if (rIndex < geometry.getGeometries().length) {
 				// test the ring
 				Geometry ring = geometry.getGeometries()[rIndex];
+				if(isEmpty(ring)) {
+					return true;
+				}
+				// if we come from an empty ring, test the containment
+				if(ring.getCoordinates().length < 3 && rIndex > 0) {
+					// hole contained by shell
+					Geometry shell = geometry.getGeometries()[0];
+					if (!ringContains(shell, ring)) {
+						return false;
+					}
+					// hole not contained by other holes
+					for (Geometry ring2 : geometry.getGeometries()) {
+						if (shell != ring2 && ring != ring2 && ringContains(ring2, ring)) {
+							return false;
+						}
+					}
+				}
 				if (!isValidLinearRing(ring, new int[] { cIndex })) {
 					return false;
 				}
 				// test intersection with other rings
+				if(cIndex == ring.getCoordinates().length -1) {
+					cIndex--;
+				}
 				Geometry segment = toLineString(ring.getCoordinates()[cIndex], ring.getCoordinates()[cIndex + 1]);
 				for (Geometry ring2 : geometry.getGeometries()) {
 					if (!ring.equals(ring2) && intersects(segment, ring2)) {
@@ -784,11 +818,7 @@ public final class GeometryService {
 			// a new polygon has been added
 			int pIndex = index[0];
 			if (pIndex < geometry.getGeometries().length) {
-				// test the polygon
 				Geometry poly = geometry.getGeometries()[pIndex];
-				if (!isValidPolygon(poly)) {
-					return false;
-				}
 				// no intersection with other polygons
 				for (Geometry poly2 : geometry.getGeometries()) {
 					if (poly != poly2 && intersects(poly, poly2)) {
