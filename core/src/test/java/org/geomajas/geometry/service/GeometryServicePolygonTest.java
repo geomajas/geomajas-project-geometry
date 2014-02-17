@@ -141,12 +141,16 @@ public class GeometryServicePolygonTest {
 				.toGeometry("POLYGON((-1 -1, 2 -1, 2 2, -1 2, -1 -1),(0.5 0, 1 1, 0 1, 0.5 0),(0.5 1, 1 0, 0 0, 0.5 1))");
 		Assert.assertFalse(GeometryService.isValid(p));
 		Assert.assertFalse(GeometryService.isValid(p, new int[] { 1, 0 }));
+		Assert.assertEquals(GeometryValidationState.SELF_INTERSECTION, GeometryService.validate(p));
+		Assert.assertEquals(GeometryValidationState.SELF_INTERSECTION, GeometryService.validate(p, new int[] { 1, 0 }));
 		// invalid hole outside shell
 		p = WktService.toGeometry("POLYGON((0 0, 1 0, 1 1, 0 1, 0 0),(3 3, 3 3, 3 3, 3 3))");
 		Assert.assertFalse(GeometryService.isValid(p, new int[] { 1 }));
+		Assert.assertEquals(GeometryValidationState.HOLE_OUTSIDE_SHELL, GeometryService.validate(p, new int[] { 1 }));
 		// invalid (self-intersect)
 		p = WktService.toGeometry("POLYGON((2 0, 1 0, 1 1, 0 1, 2 0))");
 		Assert.assertFalse(GeometryService.isValid(p, new int[] { 0, 0 }));
+		Assert.assertEquals(GeometryValidationState.RING_SELF_INTERSECTION, GeometryService.validate(p, new int[] { 0, 0 }));
 	}
 
 	@Test
