@@ -19,8 +19,8 @@
 
   <programlisting>&lt;dependency&gt;
     &lt;groupId&gt;org.geomajas.project&lt;/groupId&gt;
-    &lt;artifactId&gt;geomajas-geometry&lt;/artifactId&gt;
-    &lt;version&gt;1.0.0&lt;/version&gt;
+    &lt;artifactId&gt;geomajas-project-geometry-core&lt;/artifactId&gt;
+    &lt;version&gt;<?eval ${project.version}?>&lt;/version&gt;
 &lt;/dependency&gt;</programlisting>
 
   <note>
