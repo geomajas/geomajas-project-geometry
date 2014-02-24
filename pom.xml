@@ -34,9 +34,9 @@
 	</description>
 
 	<scm>
-		<connection>scm:svn:https://svn.geomajas.org/majas/trunk/project/geomajas-project-geometry</connection>
-		<developerConnection>scm:svn:https://svn.geomajas.org/majas/trunk/project/geomajas-project-geometry</developerConnection>
-		<url>http://ci.geomajas.org/svn/repos/Geomajas/list/trunk/project/geomajas-project-geometry</url>
+		<connection>scm:git:git@github.com:geomajas/geomajas-project-geometry.git</connection>
+		<developerConnection>scm:git:git@github.com:geomajas/geomajas-project-geometry.git</developerConnection>
+		<url>https://github.com/geomajas/geomajas-project-geometry.git</url>
 	</scm>
 
 	<modules>
