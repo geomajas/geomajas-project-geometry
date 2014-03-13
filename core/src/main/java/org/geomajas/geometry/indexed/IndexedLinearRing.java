@@ -16,7 +16,15 @@ import java.util.List;
 import org.geomajas.geometry.Coordinate;
 import org.geomajas.geometry.Geometry;
 import org.geomajas.geometry.service.MathService;
+import org.geomajas.geometry.service.WktException;
+import org.geomajas.geometry.service.WktService;
 
+/**
+ * A linear ring that knows its index in the geometry.
+ * 
+ * @author Jan De Moerloose
+ * 
+ */
 public class IndexedLinearRing {
 
 	private int[] index;
@@ -26,6 +34,8 @@ public class IndexedLinearRing {
 	private Geometry geometry;
 
 	private IndexedPolygon polygon;
+
+	private List<IndexedEdge> edges;
 
 	public IndexedLinearRing(Geometry geometry) {
 		this(null, geometry, new int[0]);
@@ -88,7 +98,7 @@ public class IndexedLinearRing {
 
 	public boolean containsRing(IndexedLinearRing ring) {
 		for (Coordinate c : ring.getGeometry().getCoordinates()) {
-			if (!MathService.isWithin(geometry, c)) {
+			if (!(MathService.isWithin(geometry, c) || MathService.touches(geometry, c))) {
 				return false;
 			}
 		}
@@ -96,17 +106,19 @@ public class IndexedLinearRing {
 	}
 
 	public List<IndexedEdge> getEdges() {
-		List<IndexedEdge> edges = new ArrayList<IndexedEdge>();
-		Coordinate[] coords = geometry.getCoordinates();
-		for (int i = 0; i < coords.length - 1; i++) {
-			edges.add(new IndexedEdge(this, coords[i], coords[i + 1], i));
+		if (edges == null) {
+			edges = new ArrayList<IndexedEdge>();
+			Coordinate[] coords = geometry.getCoordinates();
+			for (int i = 0; i < coords.length - 1; i++) {
+				edges.add(new IndexedEdge(this, coords[i], coords[i + 1], i));
+			}
 		}
 		return edges;
 	}
 
 	public IndexedEdge getNextEdge(int i) {
 		if (i >= 0 && i < coordinates.length - 1) {
-			return new IndexedEdge(this, coordinates[i], coordinates[i + 1], i);
+			return getEdges().get(i);
 		} else {
 			throw new IllegalArgumentException("Not a valid index");
 		}
@@ -115,10 +127,9 @@ public class IndexedLinearRing {
 	public IndexedEdge getPreviousEdge(int i) {
 		if (i >= 0 && i < coordinates.length - 1) {
 			if (i == 0) {
-				return new IndexedEdge(this, coordinates[coordinates.length - 2], coordinates[0],
-						coordinates.length - 2);
+				return getEdges().get(coordinates.length - 2);
 			} else {
-				return new IndexedEdge(this, coordinates[i - 1], coordinates[i], i - 1);
+				return getEdges().get(i - 1);
 			}
 		} else {
 			throw new IllegalArgumentException("Not a valid index");
@@ -127,6 +138,14 @@ public class IndexedLinearRing {
 
 	public int[] getIndex() {
 		return index;
+	}
+
+	public String toString() {
+		try {
+			return WktService.toWkt(geometry);
+		} catch (WktException e) {
+			return "Can't convert to wkt";
+		}
 	}
 
 }

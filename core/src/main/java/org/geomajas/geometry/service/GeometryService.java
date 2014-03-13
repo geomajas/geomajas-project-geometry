@@ -27,8 +27,6 @@ import org.geomajas.geometry.indexed.IndexedMultiLineString;
 import org.geomajas.geometry.indexed.IndexedMultiPolygon;
 import org.geomajas.geometry.indexed.IndexedPolygon;
 
-import com.vividsolutions.jts.geom.LinearRing;
-
 /**
  * Service definition for operations on {@link Geometry} objects. It's methods are loosely based upon the feature
  * specification for SQL.
@@ -319,6 +317,7 @@ public final class GeometryService {
 	 * Returns the current validation context. This is a mutable singleton that will be cleared after each validation !
 	 * 
 	 * @return the context
+	 * @since 1.2.1
 	 */
 	public static GeometryValidationContext getValidationContext() {
 		return validationContext;
@@ -433,7 +432,7 @@ public final class GeometryService {
 	}
 
 	/**
-	 * The centroid is also known as the "center of gravity" or the "center of mass".ring
+	 * The centroid is also known as the "center of gravity" or the "center of mass".
 	 * 
 	 * @param geometry The other geometry to calculate the centroid for.
 	 * 
@@ -707,10 +706,12 @@ public final class GeometryService {
 	private static void validateContainment(IndexedMultiPolygon multiPolygon, IndexedPolygon polygon) {
 		// no nested shells
 		for (IndexedPolygon p2 : multiPolygon.getPolygons()) {
-			if (polygon.getShell().containsRing(p2.getShell())) {
-				validationContext.addNestedShells(polygon.getShell(), p2.getShell());
-			} else if (p2.getShell().containsRing(polygon.getShell())) {
-				validationContext.addNestedShells(p2.getShell(), polygon.getShell());
+			if (p2 != polygon) {
+				if (polygon.getShell().containsRing(p2.getShell())) {
+					validationContext.addNestedShells(polygon.getShell(), p2.getShell());
+				} else if (p2.getShell().containsRing(polygon.getShell())) {
+					validationContext.addNestedShells(p2.getShell(), polygon.getShell());
+				}
 			}
 		}
 		// validate containment for polygons
@@ -721,8 +722,10 @@ public final class GeometryService {
 		for (IndexedPolygon p : multiPolygon.getPolygons()) {
 			// no nested shells
 			for (IndexedPolygon p2 : multiPolygon.getPolygons()) {
-				if (p.getShell().containsRing(p2.getShell())) {
-					validationContext.addNestedShells(p.getShell(), p2.getShell());
+				if (p2 != p) {
+					if (p.getShell().containsRing(p2.getShell())) {
+						validationContext.addNestedShells(p.getShell(), p2.getShell());
+					}
 				}
 			}
 			// validate containment for polygons
@@ -810,12 +813,6 @@ public final class GeometryService {
 	}
 
 	private static void validateLinearRing(IndexedLinearRing ring, IndexedEdge edge) {
-		if (!ring.isClosed()) {
-			validationContext.addNonClosedRing(ring);
-		}
-		if (ring.isTooFewPoints()) {
-			validationContext.addTooFewPoints(ring);
-		}
 		List<IndexedIntersection> intersections = ring.getIntersections(edge);
 		for (IndexedIntersection intersection : intersections) {
 			if (ring == edge.getRing()) {

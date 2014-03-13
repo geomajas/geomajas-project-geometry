@@ -14,7 +14,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.geomajas.geometry.Geometry;
+import org.geomajas.geometry.service.WktException;
+import org.geomajas.geometry.service.WktService;
 
+/**
+ * A polygon that knows its index in the geometry.
+ * 
+ * @author Jan De Moerloose
+ * 
+ */
 public class IndexedPolygon {
 
 	private IndexedLinearRing shell;
@@ -23,11 +31,14 @@ public class IndexedPolygon {
 
 	private int[] index;
 
+	private Geometry geometry;
+
 	public IndexedPolygon(Geometry geometry) {
 		this(geometry, new int[0]);
 	}
 
 	public IndexedPolygon(Geometry geometry, int[] index) {
+		this.geometry = geometry;
 		this.index = index;
 		shell = new IndexedLinearRing(this, geometry.getGeometries()[0], copyAppend(index, 0));
 
@@ -61,6 +72,14 @@ public class IndexedPolygon {
 		System.arraycopy(orig, 0, copy, 0, orig.length);
 		copy[orig.length] = i;
 		return copy;
+	}
+
+	public String toString() {
+		try {
+			return WktService.toWkt(geometry);
+		} catch (WktException e) {
+			return "Can't convert to wkt";
+		}
 	}
 
 }

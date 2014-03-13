@@ -12,7 +12,15 @@ package org.geomajas.geometry.indexed;
 
 import org.geomajas.geometry.Coordinate;
 import org.geomajas.geometry.Geometry;
+import org.geomajas.geometry.service.WktException;
+import org.geomajas.geometry.service.WktService;
 
+/**
+ * A linestring that knows its index in the geometry.
+ * 
+ * @author Jan De Moerloose
+ * 
+ */
 public class IndexedLineString {
 
 	private IndexedMultiLineString multilinestring;
@@ -36,6 +44,14 @@ public class IndexedLineString {
 
 	public boolean isTooFewPoints() {
 		return coordinates != null && coordinates.length < 2;
+	}
+	
+	public String toString() {
+		try {
+			return WktService.toWkt(geometry);
+		} catch (WktException e) {
+			return "Can't convert to wkt";
+		}
 	}
 
 }

@@ -10,6 +10,12 @@
  */
 package org.geomajas.geometry.indexed;
 
+/**
+ * An intersection of 2 edges.
+ * 
+ * @author Jan De Moerloose
+ * 
+ */
 public class IndexedIntersection {
 
 	private IndexedEdge edge1;
@@ -27,6 +33,14 @@ public class IndexedIntersection {
 
 	public IndexedEdge getEdge2() {
 		return edge2;
+	}
+
+	public String toString() {
+		return edge1 + "X" + edge2;
+	}
+
+	public boolean equalEdges(IndexedIntersection other) {
+		return (other.edge1 == edge1 && other.edge2 == edge2) || (other.edge1 == edge2 && other.edge2 == edge1);
 	}
 
 }

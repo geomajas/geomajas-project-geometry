@@ -14,22 +14,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.geomajas.geometry.Geometry;
+import org.geomajas.geometry.service.WktException;
+import org.geomajas.geometry.service.WktService;
 
-
+/**
+ * A multilinestring that knows its index in the geometry.
+ * 
+ * @author Jan De Moerloose
+ * 
+ */
 public class IndexedMultiLineString {
 
 	private List<IndexedLineString> linestrings = new ArrayList<IndexedLineString>();
 
+	private Geometry geometry;
+
 	public IndexedMultiLineString(Geometry geometry) {
+		this.geometry = geometry;
 		for (int i = 0; i < geometry.getGeometries().length; i++) {
 			linestrings.add(new IndexedLineString(this, geometry.getGeometries()[i], new int[] { i }));
 		}
 	}
 
-	
 	public List<IndexedLineString> getLineStrings() {
 		return linestrings;
 	}
-	
-	
+
+	public String toString() {
+		try {
+			return WktService.toWkt(geometry);
+		} catch (WktException e) {
+			return "Can't convert to wkt";
+		}
+	}
+
 }

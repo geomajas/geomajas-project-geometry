@@ -11,7 +11,14 @@
 package org.geomajas.geometry.indexed;
 
 import org.geomajas.geometry.Coordinate;
+import org.geomajas.geometry.Geometry;
 
+/**
+ * An edge that knows its index (index of first coordinate) in the geometry.
+ * 
+ * @author Jan De Moerloose
+ * 
+ */
 public class IndexedEdge {
 
 	private Coordinate start;
@@ -21,6 +28,8 @@ public class IndexedEdge {
 	private int index;
 
 	private IndexedLinearRing ring;
+
+	private Geometry geometry;
 
 	public IndexedEdge(IndexedLinearRing ring, Coordinate start, Coordinate end, int index) {
 		this.ring = ring;
@@ -43,6 +52,19 @@ public class IndexedEdge {
 
 	public int getIndex() {
 		return index;
+	}
+
+	public String toString() {
+		return "LINESTRING (" + getStart().getX() + " " + getStart().getY() + "," + getEnd().getX() + " "
+				+ getEnd().getY() + ")";
+	}
+
+	public Geometry getGeometry() {
+		if (geometry == null) {
+			geometry = new Geometry(Geometry.LINE_STRING, 0, 5);
+			geometry.setCoordinates(new Coordinate[] { start, end });
+		}
+		return geometry;
 	}
 
 }

@@ -35,6 +35,8 @@ public class GeometryValidationContext {
 
 	private List<ValidationViolation> violations = new ArrayList<ValidationViolation>();
 
+	private List<IndexedIntersection> intersections = new ArrayList<IndexedIntersection>();
+
 	public void addHoleOutsideShell(IndexedLinearRing hole, IndexedLinearRing shell) {
 		violations.add(new HoleOutsideShellViolation(hole, shell));
 	}
@@ -60,19 +62,28 @@ public class GeometryValidationContext {
 	}
 
 	public void addSelfIntersection(IndexedIntersection intersection) {
-		violations.add(new SelfIntersectionViolation(intersection.getEdge1(), intersection.getEdge2()));
+		if (!intersectionHandled(intersection)) {
+			violations.add(new SelfIntersectionViolation(intersection.getEdge1(), intersection.getEdge2()));
+		}
 	}
 
 	public void addRingSelfIntersection(IndexedIntersection intersection) {
-		violations.add(new RingSelfIntersectionViolation(intersection.getEdge1(), intersection.getEdge2()));
+		if (!intersectionHandled(intersection)) {
+			violations.add(new RingSelfIntersectionViolation(intersection.getEdge1(), intersection.getEdge2()));
+		}
 	}
 
 	public void clear() {
 		violations.clear();
+		intersections.clear();
 	}
 
 	public boolean isValid() {
 		return violations.isEmpty();
+	}
+
+	public List<ValidationViolation> getViolations() {
+		return violations;
 	}
 
 	public GeometryValidationState getState() {
@@ -81,6 +92,16 @@ public class GeometryValidationContext {
 		} else {
 			return violations.get(0).getState();
 		}
+	}
+
+	private boolean intersectionHandled(IndexedIntersection intersection) {
+		for (IndexedIntersection i : intersections) {
+			if (i.equalEdges(intersection)) {
+				return true;
+			}
+		}
+		intersections.add(intersection);
+		return false;
 	}
 
 }
