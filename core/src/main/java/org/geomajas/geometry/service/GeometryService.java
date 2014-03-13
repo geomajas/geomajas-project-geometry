@@ -19,6 +19,15 @@ import org.geomajas.geometry.Bbox;
 import org.geomajas.geometry.Coordinate;
 import org.geomajas.geometry.Geometry;
 import org.geomajas.geometry.Matrix;
+import org.geomajas.geometry.indexed.IndexedEdge;
+import org.geomajas.geometry.indexed.IndexedIntersection;
+import org.geomajas.geometry.indexed.IndexedLineString;
+import org.geomajas.geometry.indexed.IndexedLinearRing;
+import org.geomajas.geometry.indexed.IndexedMultiLineString;
+import org.geomajas.geometry.indexed.IndexedMultiPolygon;
+import org.geomajas.geometry.indexed.IndexedPolygon;
+
+import com.vividsolutions.jts.geom.LinearRing;
 
 /**
  * Service definition for operations on {@link Geometry} objects. It's methods are loosely based upon the feature
@@ -32,6 +41,8 @@ public final class GeometryService {
 
 	/** Delta value used when comparing double values. If they are within this range, they are considered equal. */
 	public static final Double DEFAULT_DOUBLE_DELTA = 1e-10;
+
+	private static GeometryValidationContext validationContext = new GeometryValidationContext();
 
 	private GeometryService() {
 		// Final class should have a private no-argument constructor.
@@ -245,14 +256,15 @@ public final class GeometryService {
 	 * @since 1.2.0
 	 */
 	public static boolean isValid(Geometry geometry, int[] index) {
-		return validate(geometry, index).isValid();
+		validate(geometry, index);
+		return validationContext.isValid();
 	}
 
 	/**
 	 * Validates a geometry, focusing on changes at a specific sub-level of the geometry. The sublevel is indicated by
 	 * passing an array of indexes. The array should uniquely determine a coordinate or subgeometry (linear ring) by
-	 * recursing through the geometry tree. The only checks are on intersection and containment, we don't check on too
-	 * few coordinates as we want to support incremental creation of polygons.
+	 * recursing through the geometry tree. The only checks are on intersection (for coordinates) and containment (for
+	 * subgeometries), we don't check on too few coordinates as we want to support incremental creation of polygons.
 	 * 
 	 * @param geometry The geometry to check.
 	 * @param index an array of indexes, points to vertex, ring, polygon, etc...
@@ -260,22 +272,56 @@ public final class GeometryService {
 	 * @since 1.2.0
 	 */
 	public static GeometryValidationState validate(Geometry geometry, int[] index) {
-		if (Geometry.POINT.equals(geometry.getGeometryType())) {
-			return GeometryValidationState.VALID;
-		} else if (Geometry.LINE_STRING.equals(geometry.getGeometryType())) {
-			return GeometryValidationState.VALID;
-		} else if (Geometry.LINEAR_RING.equals(geometry.getGeometryType())) {
-			return validateLinearRing(geometry, index);
+		validationContext.clear();
+		if (Geometry.LINEAR_RING.equals(geometry.getGeometryType())) {
+			IndexedLinearRing ring = new IndexedLinearRing(geometry);
+			if (index.length != 1) {
+				throw new IllegalArgumentException("Invalid index");
+			}
+			// validate edges
+			validateLinearRing(ring, ring.getPreviousEdge(index[0]));
+			validateLinearRing(ring, ring.getNextEdge(index[0]));
 		} else if (Geometry.POLYGON.equals(geometry.getGeometryType())) {
-			return validatePolygon(geometry, index);
-		} else if (Geometry.MULTI_POINT.equals(geometry.getGeometryType())) {
-			return GeometryValidationState.VALID;
-		} else if (Geometry.MULTI_LINE_STRING.equals(geometry.getGeometryType())) {
-			return validateMultiLineString(geometry);
+			IndexedPolygon polygon = new IndexedPolygon(geometry);
+			if (index.length == 1) {
+				// validate containment
+				IndexedLinearRing ring = polygon.getRing(index[0]);
+				validateContainment(polygon, ring);
+			} else if (index.length == 2) {
+				IndexedLinearRing ring = polygon.getRing(index[0]);
+				// validate edges
+				validatePolygon(polygon, ring.getPreviousEdge(index[1]));
+				validatePolygon(polygon, ring.getNextEdge(index[1]));
+			}
 		} else if (Geometry.MULTI_POLYGON.equals(geometry.getGeometryType())) {
-			return validateMultiPolygon(geometry, index);
+			IndexedMultiPolygon multipolygon = new IndexedMultiPolygon(geometry);
+			if (index.length == 1) {
+				// validate containment
+				IndexedPolygon polygon = multipolygon.getPolygons().get(index[0]);
+				validateContainment(multipolygon, polygon);
+			} else if (index.length == 2) {
+				// validate containment
+				IndexedPolygon polygon = multipolygon.getPolygons().get(index[0]);
+				IndexedLinearRing ring = polygon.getRing(index[1]);
+				validateContainment(polygon, ring);
+			} else if (index.length == 3) {
+				// validate edges
+				IndexedPolygon polygon = multipolygon.getPolygons().get(index[0]);
+				IndexedLinearRing ring = polygon.getRing(index[1]);
+				validateMultiPolygon(multipolygon, ring.getPreviousEdge(index[2]));
+				validateMultiPolygon(multipolygon, ring.getNextEdge(index[2]));
+			}
 		}
-		throw new IllegalArgumentException("Unknown geometry type");
+		return validationContext.getState();
+	}
+
+	/**
+	 * Returns the current validation context. This is a mutable singleton that will be cleared after each validation !
+	 * 
+	 * @return the context
+	 */
+	public static GeometryValidationContext getValidationContext() {
+		return validationContext;
 	}
 
 	/**
@@ -296,26 +342,24 @@ public final class GeometryService {
 	 * @since 1.2.0
 	 */
 	public static GeometryValidationState validate(Geometry geometry) {
-		if (Geometry.POINT.equals(geometry.getGeometryType())) {
-			return GeometryValidationState.VALID;
-		} else if (Geometry.LINE_STRING.equals(geometry.getGeometryType())) {
-			if (isEmpty(geometry) || (geometry.getCoordinates().length != 1)) {
-				return GeometryValidationState.VALID;
-			} else {
-				return GeometryValidationState.TOO_FEW_POINTS;
-			}
+		validationContext.clear();
+		if (Geometry.LINE_STRING.equals(geometry.getGeometryType())) {
+			IndexedLineString lineString = new IndexedLineString(geometry);
+			validateLineString(lineString);
 		} else if (Geometry.LINEAR_RING.equals(geometry.getGeometryType())) {
-			return validateLinearRing(geometry);
+			IndexedLinearRing ring = new IndexedLinearRing(geometry);
+			validateLinearRing(ring);
 		} else if (Geometry.POLYGON.equals(geometry.getGeometryType())) {
-			return validatePolygon(geometry);
-		} else if (Geometry.MULTI_POINT.equals(geometry.getGeometryType())) {
-			return GeometryValidationState.VALID;
+			IndexedPolygon polygon = new IndexedPolygon(geometry);
+			validatePolygon(polygon);
 		} else if (Geometry.MULTI_LINE_STRING.equals(geometry.getGeometryType())) {
-			return validateMultiLineString(geometry);
+			IndexedMultiLineString multiLineString = new IndexedMultiLineString(geometry);
+			validateMultiLineString(multiLineString);
 		} else if (Geometry.MULTI_POLYGON.equals(geometry.getGeometryType())) {
-			return validateMultiPolygon(geometry);
+			IndexedMultiPolygon multiPolygon = new IndexedMultiPolygon(geometry);
+			validateMultiPolygon(multiPolygon);
 		}
-		throw new IllegalArgumentException("Unknown geometry type");
+		return validationContext.getState();
 	}
 
 	/**
@@ -389,7 +433,7 @@ public final class GeometryService {
 	}
 
 	/**
-	 * The centroid is also known as the "center of gravity" or the "center of mass".
+	 * The centroid is also known as the "center of gravity" or the "center of mass".ring
 	 * 
 	 * @param geometry The other geometry to calculate the centroid for.
 	 * 
@@ -632,270 +676,165 @@ public final class GeometryService {
 		return new Coordinate(sumX / totalLength, sumY / totalLength);
 	}
 
-	private static boolean isClosed(Geometry geometry) {
-		if (geometry.getCoordinates() != null && geometry.getCoordinates().length > 1) {
-			Coordinate first = geometry.getCoordinates()[0];
-			Coordinate last = geometry.getCoordinates()[geometry.getCoordinates().length - 1];
-			return first.equals(last);
+	private static void validateMultiPolygon(IndexedMultiPolygon multipolygon, IndexedEdge edge) {
+		for (IndexedPolygon polygon : multipolygon.getPolygons()) {
+			validatePolygon(polygon, edge);
 		}
-		return false;
 	}
 
-	private static GeometryValidationState validateLinearRing(Geometry geometry) {
-		if (isEmpty(geometry)) {
-			return GeometryValidationState.VALID;
+	private static void validateMultiPolygon(IndexedMultiPolygon multiPolygon) {
+		// validate topology (nesting)
+		validateContainment(multiPolygon);
+		// validate polygons
+		for (IndexedPolygon polygon : multiPolygon.getPolygons()) {
+			validatePolygon(polygon);
 		}
-		if (!isClosed(geometry)) {
-			return GeometryValidationState.RING_NOT_CLOSED;
-		}
-		Coordinate[] coordinates = geometry.getCoordinates();
-		if (coordinates.length < 4) {
-			return GeometryValidationState.TOO_FEW_POINTS;
-		}
-		for (int i = 0; i < coordinates.length - 1; i++) {
-			for (int j = 0; j < coordinates.length - 1; j++) {
-				if ((i != j)
-						&& MathService.intersectsLineSegment(coordinates[i], coordinates[i + 1], coordinates[j],
-								coordinates[j + 1])) {
-					return GeometryValidationState.RING_SELF_INTERSECTION;
+		// validate edges (intersection)
+		for (IndexedPolygon polygon : multiPolygon.getPolygons()) {
+			for (IndexedPolygon polygon2 : multiPolygon.getPolygons()) {
+				for (IndexedEdge edge : polygon2.getShell().getEdges()) {
+					validatePolygon(polygon, edge);
+				}
+				for (IndexedLinearRing ring : polygon2.getHoles()) {
+					for (IndexedEdge edge : ring.getEdges()) {
+						validatePolygon(polygon, edge);
+					}
 				}
 			}
 		}
-		return GeometryValidationState.VALID;
 	}
 
-	/**
-	 * Incremental validation, focusing on index and excluding {@link GeometryValidationState#TOO_FEW_POINTS}.
-	 * 
-	 * @param geometry
-	 * @param index
-	 * @return
-	 */
-	private static GeometryValidationState validateLinearRing(Geometry geometry, int[] index) {
-		if (isEmpty(geometry)) {
-			return GeometryValidationState.VALID;
+	private static void validateContainment(IndexedMultiPolygon multiPolygon, IndexedPolygon polygon) {
+		// no nested shells
+		for (IndexedPolygon p2 : multiPolygon.getPolygons()) {
+			if (polygon.getShell().containsRing(p2.getShell())) {
+				validationContext.addNestedShells(polygon.getShell(), p2.getShell());
+			} else if (p2.getShell().containsRing(polygon.getShell())) {
+				validationContext.addNestedShells(p2.getShell(), polygon.getShell());
+			}
 		}
-		if (!isClosed(geometry)) {
-			return GeometryValidationState.RING_NOT_CLOSED;
+		// validate containment for polygons
+		validateContainment(polygon);
+	}
+
+	private static void validateContainment(IndexedMultiPolygon multiPolygon) {
+		for (IndexedPolygon p : multiPolygon.getPolygons()) {
+			// no nested shells
+			for (IndexedPolygon p2 : multiPolygon.getPolygons()) {
+				if (p.getShell().containsRing(p2.getShell())) {
+					validationContext.addNestedShells(p.getShell(), p2.getShell());
+				}
+			}
+			// validate containment for polygons
+			validateContainment(p);
 		}
-		Coordinate[] coordinates = geometry.getCoordinates();
-		if (coordinates.length < 4) {
-			return GeometryValidationState.VALID;
+	}
+
+	private static void validatePolygon(IndexedPolygon polygon) {
+		// validate rings
+		validateLinearRing(polygon.getShell());
+		for (IndexedLinearRing ring : polygon.getHoles()) {
+			validateLinearRing(ring);
 		}
-		if (index.length == 1 && index[0] <= coordinates.length - 1) {
-			// find the 2 segments connected to index[0]
-			int i1 = 0;
-			int i2 = 0;
-			if (index[0] == (coordinates.length - 1) || index[0] == 0) {
-				i1 = 0;
-				i2 = coordinates.length - 2;
+		// validate containment
+		validateContainment(polygon);
+		// validate edges (intersection)
+		for (IndexedEdge edge : polygon.getShell().getEdges()) {
+			validatePolygon(polygon, edge);
+		}
+		for (IndexedLinearRing ring : polygon.getHoles()) {
+			for (IndexedEdge edge : ring.getEdges()) {
+				validatePolygon(polygon, edge);
+			}
+		}
+	}
+
+	private static void validateContainment(IndexedPolygon polygon, IndexedLinearRing ring) {
+		if (ring.isHole()) {
+			// hole in shell
+			if (!polygon.getShell().containsRing(ring)) {
+				validationContext.addHoleOutsideShell(ring, polygon.getShell());
+			}
+			// no nested holes
+			for (IndexedLinearRing hole2 : polygon.getHoles()) {
+				if (hole2 != ring) {
+					if (ring.containsRing(hole2)) {
+						validationContext.addNestedHoles(ring, hole2);
+					} else if (hole2.containsRing(ring)) {
+						validationContext.addNestedHoles(hole2, ring);
+					}
+				}
+			}
+		} else if (ring.isShell()) {
+			// holes in shell
+			for (IndexedLinearRing hole : polygon.getHoles()) {
+				if (!ring.containsRing(hole)) {
+					validationContext.addHoleOutsideShell(hole, ring);
+				}
+			}
+		}
+	}
+
+	private static void validateContainment(IndexedPolygon polygon) {
+		for (IndexedLinearRing hole : polygon.getHoles()) {
+			// holes in shell
+			if (!polygon.getShell().containsRing(hole)) {
+				validationContext.addHoleOutsideShell(hole, polygon.getShell());
+			}
+			// no nested holes
+			for (IndexedLinearRing hole2 : polygon.getHoles()) {
+				if (hole2 != hole && hole.containsRing(hole2)) {
+					validationContext.addNestedHoles(hole, hole2);
+				}
+			}
+		}
+	}
+
+	private static void validatePolygon(IndexedPolygon polygon, IndexedEdge edge) {
+		validateLinearRing(polygon.getShell(), edge);
+		for (IndexedLinearRing hole : polygon.getHoles()) {
+			validateLinearRing(hole, edge);
+		}
+	}
+
+	private static void validateLinearRing(IndexedLinearRing ring) {
+		if (!ring.isClosed()) {
+			validationContext.addNonClosedRing(ring);
+		}
+		if (ring.isTooFewPoints()) {
+			validationContext.addTooFewPoints(ring);
+		}
+		for (IndexedEdge edge : ring.getEdges()) {
+			validateLinearRing(ring, edge);
+		}
+	}
+
+	private static void validateLinearRing(IndexedLinearRing ring, IndexedEdge edge) {
+		if (!ring.isClosed()) {
+			validationContext.addNonClosedRing(ring);
+		}
+		if (ring.isTooFewPoints()) {
+			validationContext.addTooFewPoints(ring);
+		}
+		List<IndexedIntersection> intersections = ring.getIntersections(edge);
+		for (IndexedIntersection intersection : intersections) {
+			if (ring == edge.getRing()) {
+				validationContext.addRingSelfIntersection(intersection);
 			} else {
-				i1 = index[0];
-				i2 = index[0] - 1;
+				validationContext.addSelfIntersection(intersection);
 			}
-			// check 2 segments: i -> i + 1 and i - 1 -> i
-			int[] is = new int[] { i1, i2 };
-			for (int j = 0; j < coordinates.length - 1; j++) {
-				for (int i : is) {
-					if (i != j) {
-						if (MathService.intersectsLineSegment(coordinates[i], coordinates[i + 1], coordinates[j],
-								coordinates[j + 1])) {
-							return GeometryValidationState.RING_SELF_INTERSECTION;
-						}
-					}
-				}
-			}
-			return GeometryValidationState.VALID;
-		} else {
-			throw new IllegalArgumentException("Invalid index");
 		}
 	}
 
-	private static GeometryValidationState validatePolygon(Geometry geometry) {
-		if (isEmpty(geometry)) {
-			return GeometryValidationState.VALID;
-		}
-		for (Geometry ring1 : geometry.getGeometries()) {
-			GeometryValidationState s = validateLinearRing(ring1);
-			if (!s.isValid()) {
-				return s;
-			}
-			for (Geometry ring2 : geometry.getGeometries()) {
-				if (!ring1.equals(ring2) && intersects(ring1, ring2)) {
-					return GeometryValidationState.SELF_INTERSECTION;
-				}
-			}
-		}
-		return GeometryValidationState.VALID;
-	}
-
-	private static GeometryValidationState validatePolygon(Geometry geometry, int[] index) {
-		if (isEmpty(geometry)) {
-			return GeometryValidationState.VALID;
-		} else if (index.length == 1) {
-			// a new (supposedly valid) ring has been added
-			int rIndex = index[0];
-			if (rIndex < geometry.getGeometries().length) {
-				Geometry ring = geometry.getGeometries()[rIndex];
-				// our editing controller starts with an empty ring
-				if (isEmpty(ring)) {
-					return GeometryValidationState.VALID;
-				}
-				// test containment
-				if (rIndex == 0) {
-					// shell contains all holes
-					for (Geometry ring2 : geometry.getGeometries()) {
-						if (ring != ring2 && !ringContains(ring, ring2)) {
-							return GeometryValidationState.HOLE_OUTSIDE_SHELL;
-						}
-					}
-				} else {
-					// hole contained by shell
-					Geometry shell = geometry.getGeometries()[0];
-					if (!ringContains(shell, ring)) {
-						return GeometryValidationState.HOLE_OUTSIDE_SHELL;
-					}
-					// no intersection with other holes
-					for (Geometry ring2 : geometry.getGeometries()) {
-						if (shell != ring2 && ring != ring2 && intersects(ring, ring2)) {
-							return GeometryValidationState.SELF_INTERSECTION;
-						}
-					}
-				}
-				return GeometryValidationState.VALID;
-			} else {
-				throw new IllegalArgumentException("Invalid index");
-			}
-		} else if (index.length == 2) {
-			// a new line segment has been created (by addition or removal of a vertex)
-			int rIndex = index[0];
-			int cIndex = index[1];
-			if (rIndex < geometry.getGeometries().length) {
-				// test the ring
-				Geometry ring = geometry.getGeometries()[rIndex];
-				if (isEmpty(ring)) {
-					return GeometryValidationState.VALID;
-				}
-				// if we come from an empty ring, test the containment
-				if (ring.getCoordinates().length < 3 && rIndex > 0) {
-					// hole contained by shell
-					Geometry shell = geometry.getGeometries()[0];
-					if (!ringContains(shell, ring)) {
-						return GeometryValidationState.HOLE_OUTSIDE_SHELL;
-					}
-					// hole not contained by other holes
-					for (Geometry ring2 : geometry.getGeometries()) {
-						if (shell != ring2 && ring != ring2 && ringContains(ring2, ring)) {
-							return GeometryValidationState.NESTED_HOLES;
-						}
-					}
-				}
-				GeometryValidationState v = validateLinearRing(ring, new int[] { cIndex });
-				if (!v.isValid()) {
-					return v;
-				}
-				// test intersection with other rings
-				if (cIndex == ring.getCoordinates().length - 1) {
-					cIndex--;
-				}
-				Geometry segment = toLineString(ring.getCoordinates()[cIndex], ring.getCoordinates()[cIndex + 1]);
-				for (Geometry ring2 : geometry.getGeometries()) {
-					if (!ring.equals(ring2) && intersects(segment, ring2)) {
-						return GeometryValidationState.SELF_INTERSECTION;
-					}
-				}
-				return GeometryValidationState.VALID;
-			} else {
-				throw new IllegalArgumentException("Invalid index");
-			}
-		} else {
-			throw new IllegalArgumentException("Invalid index");
+	private static void validateMultiLineString(IndexedMultiLineString multiLineString) {
+		for (IndexedLineString lineString : multiLineString.getLineStrings()) {
+			validateLineString(lineString);
 		}
 	}
 
-	private static boolean ringContains(Geometry ring1, Geometry ring2) {
-		for (Coordinate c : ring2.getCoordinates()) {
-			if (!MathService.isWithin(ring1, c)) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	private static GeometryValidationState validateMultiLineString(Geometry geometry) {
-		if (isEmpty(geometry)) {
-			return GeometryValidationState.VALID;
-		}
-		for (Geometry lineString : geometry.getGeometries()) {
-			GeometryValidationState v = validate(lineString);
-			if (!v.isValid()) {
-				return v;
-			}
-		}
-		return GeometryValidationState.VALID;
-	}
-
-	private static GeometryValidationState validateMultiPolygon(Geometry geometry) {
-		if (!isEmpty(geometry)) {
-			for (int i = 0; i < geometry.getGeometries().length; i++) {
-				GeometryValidationState v = validate(geometry.getGeometries()[i]);
-				if (!v.isValid()) {
-					return v;
-				}
-				for (int j = i + 1; j < geometry.getGeometries().length; j++) {
-					if (intersects(geometry.getGeometries()[i], geometry.getGeometries()[j])) {
-						return GeometryValidationState.SELF_INTERSECTION;
-					}
-				}
-			}
-		}
-		return GeometryValidationState.VALID;
-	}
-
-	private static GeometryValidationState validateMultiPolygon(Geometry geometry, int[] index) {
-		if (isEmpty(geometry)) {
-			return GeometryValidationState.VALID;
-		} else if (index.length == 1) {
-			// a new polygon has been added
-			int pIndex = index[0];
-			if (pIndex < geometry.getGeometries().length) {
-				Geometry poly = geometry.getGeometries()[pIndex];
-				// our editing controller starts with an empty ring
-				if (isEmpty(poly)) {
-					return GeometryValidationState.VALID;
-				}
-				// no intersection with other polygons
-				for (Geometry poly2 : geometry.getGeometries()) {
-					if (poly != poly2 && intersects(poly, poly2)) {
-						return GeometryValidationState.SELF_INTERSECTION;
-					}
-				}
-				// shell not contained by other shells
-				for (Geometry poly2 : geometry.getGeometries()) {
-					if (poly != poly2 && ringContains(poly2.getGeometries()[0], poly.getGeometries()[0])) {
-						return GeometryValidationState.NESTED_HOLES;
-					}
-				}
-				return GeometryValidationState.VALID;
-			} else {
-				throw new IllegalArgumentException("Invalid index");
-			}
-		} else if (index.length > 2) {
-			// a new ring or vertex has been added/deleted
-			int pIndex = index[0];
-			if (pIndex < geometry.getGeometries().length) {
-				// test the poly
-				Geometry poly = geometry.getGeometries()[pIndex];
-				int[] subIndex = new int[index.length - 1];
-				for (int i = 0; i < subIndex.length; i++) {
-					subIndex[i] = index[i + 1];
-				}
-				return validate(poly, subIndex);
-			} else {
-				throw new IllegalArgumentException("Invalid index");
-			}
-		} else {
-			throw new IllegalArgumentException("Invalid index");
+	private static void validateLineString(IndexedLineString lineString) {
+		if (lineString.isTooFewPoints()) {
+			validationContext.addTooFewPoints(lineString);
 		}
 	}
 
