@@ -80,16 +80,26 @@ public class IndexedLinearRing {
 	public List<IndexedIntersection> getIntersections(IndexedEdge edge) {
 		List<IndexedIntersection> result = new ArrayList<IndexedIntersection>();
 		if (!isEmpty()) {
+			// no self-intersections if we have only 1 segment !!!
+			if (edge.getRing() == this) {
+				if (coordinates.length <= 2 || (isClosed() && coordinates.length <= 3)) {
+					return result;
+				}
+			}
 			for (int i = 0; i < coordinates.length - 1; i++) {
 				if (i != edge.getIndex() || edge.getRing() != this) {
 					if (MathService.intersectsLineSegment(coordinates[i], coordinates[i + 1], edge.getStart(),
 							edge.getEnd())) {
-						result.add(new IndexedIntersection(getNextEdge(i), edge));
+						result.add(new IndexedIntersection(getEdge(i), edge));
 					}
 				}
 			}
 		}
 		return result;
+	}
+	
+	public boolean containsCoordinate(Coordinate coordinate) {
+		return MathService.isWithin(geometry, coordinate) || MathService.touches(geometry, coordinate);
 	}
 
 	public Geometry getGeometry() {
@@ -97,6 +107,9 @@ public class IndexedLinearRing {
 	}
 
 	public boolean containsRing(IndexedLinearRing ring) {
+		if(isEmpty() || ring.isEmpty()) {
+			return false;
+		}
 		for (Coordinate c : ring.getGeometry().getCoordinates()) {
 			if (!(MathService.isWithin(geometry, c) || MathService.touches(geometry, c))) {
 				return false;
@@ -112,24 +125,20 @@ public class IndexedLinearRing {
 			for (int i = 0; i < coords.length - 1; i++) {
 				edges.add(new IndexedEdge(this, coords[i], coords[i + 1], i));
 			}
+			// make sure we can always return edges....(except for empty)
+			if (coords.length == 1) {
+				edges.add(new IndexedEdge(this, coords[0], coords[0], 0));
+			}
 		}
 		return edges;
 	}
 
-	public IndexedEdge getNextEdge(int i) {
-		if (i >= 0 && i < coordinates.length - 1) {
-			return getEdges().get(i);
-		} else {
-			throw new IllegalArgumentException("Not a valid index");
-		}
-	}
-
-	public IndexedEdge getPreviousEdge(int i) {
-		if (i >= 0 && i < coordinates.length - 1) {
-			if (i == 0) {
+	public IndexedEdge getEdge(int i) {
+		if (i >= 0 && i < coordinates.length) {
+			if (i == (coordinates.length - 1)) {
 				return getEdges().get(coordinates.length - 2);
 			} else {
-				return getEdges().get(i - 1);
+				return getEdges().get(i);
 			}
 		} else {
 			throw new IllegalArgumentException("Not a valid index");

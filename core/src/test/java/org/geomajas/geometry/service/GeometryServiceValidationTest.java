@@ -9,6 +9,7 @@ import org.geomajas.geometry.service.validation.NestedShellsViolation;
 import org.geomajas.geometry.service.validation.RingNotClosedViolation;
 import org.geomajas.geometry.service.validation.RingSelfIntersectionViolation;
 import org.geomajas.geometry.service.validation.SelfIntersectionViolation;
+import org.geomajas.geometry.service.validation.TooFewPointsViolation;
 import org.geomajas.geometry.service.validation.ValidationViolation;
 import org.junit.Test;
 
@@ -114,7 +115,19 @@ public class GeometryServiceValidationTest {
 		}
 
 	}
-
+	
+	@Test
+	public void testTooFewPoints() throws Exception {
+		String wkt = "POLYGON ((0 0, 10 0, 0 0))";
+		Geometry p = WktService.toGeometry(wkt);
+		Assert.assertFalse(GeometryService.isValid(p));
+		Assert.assertEquals(2, GeometryService.getValidationContext().getViolations().size());
+		ValidationViolation vv = GeometryService.getValidationContext().getViolations().get(0);
+		Assert.assertTrue(vv instanceof TooFewPointsViolation);
+		vv = GeometryService.getValidationContext().getViolations().get(1);
+		Assert.assertTrue(vv instanceof RingSelfIntersectionViolation);
+	}
+	
 	public com.vividsolutions.jts.geom.Geometry toJts(Geometry g) throws ParseException, WktException {
 		return new WKTReader().read(WktService.toWkt(g));
 	}

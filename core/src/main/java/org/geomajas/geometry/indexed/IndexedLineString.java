@@ -41,6 +41,18 @@ public class IndexedLineString {
 		this.index = index;
 		this.coordinates = geometry.getCoordinates();
 	}
+	
+	public IndexedMultiLineString getMultilinestring() {
+		return multilinestring;
+	}
+	
+	public Geometry getGeometry() {
+		return geometry;
+	}
+	
+	public int[] getIndex() {
+		return index;
+	}
 
 	public boolean isTooFewPoints() {
 		return coordinates != null && coordinates.length < 2;

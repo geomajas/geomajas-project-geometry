@@ -40,10 +40,12 @@ public class IndexedPolygon {
 	public IndexedPolygon(Geometry geometry, int[] index) {
 		this.geometry = geometry;
 		this.index = index;
-		shell = new IndexedLinearRing(this, geometry.getGeometries()[0], copyAppend(index, 0));
+		if(geometry.getGeometries() != null) {
+			shell = new IndexedLinearRing(this, geometry.getGeometries()[0], copyAppend(index, 0));
 
-		for (int i = 1; i < geometry.getGeometries().length; i++) {
-			holes.add(new IndexedLinearRing(this, geometry.getGeometries()[i], copyAppend(index, i)));
+			for (int i = 1; i < geometry.getGeometries().length; i++) {
+				holes.add(new IndexedLinearRing(this, geometry.getGeometries()[i], copyAppend(index, i)));
+			}
 		}
 	}
 

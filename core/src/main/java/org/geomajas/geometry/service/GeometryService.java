@@ -277,8 +277,7 @@ public final class GeometryService {
 				throw new IllegalArgumentException("Invalid index");
 			}
 			// validate edges
-			validateLinearRing(ring, ring.getPreviousEdge(index[0]));
-			validateLinearRing(ring, ring.getNextEdge(index[0]));
+			validateLinearRing(ring, ring.getEdge(index[0]));
 		} else if (Geometry.POLYGON.equals(geometry.getGeometryType())) {
 			IndexedPolygon polygon = new IndexedPolygon(geometry);
 			if (index.length == 1) {
@@ -288,29 +287,65 @@ public final class GeometryService {
 			} else if (index.length == 2) {
 				IndexedLinearRing ring = polygon.getRing(index[0]);
 				// validate edges
-				validatePolygon(polygon, ring.getPreviousEdge(index[1]));
-				validatePolygon(polygon, ring.getNextEdge(index[1]));
+				validatePolygon(polygon, ring.getEdge(index[1]));
 			}
 		} else if (Geometry.MULTI_POLYGON.equals(geometry.getGeometryType())) {
 			IndexedMultiPolygon multipolygon = new IndexedMultiPolygon(geometry);
 			if (index.length == 1) {
 				// validate containment
-				IndexedPolygon polygon = multipolygon.getPolygons().get(index[0]);
+				IndexedPolygon polygon = multipolygon.getPolygon(index[0]);
 				validateContainment(multipolygon, polygon);
 			} else if (index.length == 2) {
 				// validate containment
-				IndexedPolygon polygon = multipolygon.getPolygons().get(index[0]);
+				IndexedPolygon polygon = multipolygon.getPolygon(index[0]);
 				IndexedLinearRing ring = polygon.getRing(index[1]);
 				validateContainment(polygon, ring);
 			} else if (index.length == 3) {
 				// validate edges
-				IndexedPolygon polygon = multipolygon.getPolygons().get(index[0]);
+				IndexedPolygon polygon = multipolygon.getPolygon(index[0]);
 				IndexedLinearRing ring = polygon.getRing(index[1]);
-				validateMultiPolygon(multipolygon, ring.getPreviousEdge(index[2]));
-				validateMultiPolygon(multipolygon, ring.getNextEdge(index[2]));
+				validateMultiPolygon(multipolygon, ring.getEdge(index[2]));
 			}
 		}
 		return validationContext.getState();
+	}
+	
+	/**
+	 * Get the index of the (smallest) linear ring of the geometry that contains this coordinate.
+	 * @param geometry
+	 * @param c
+	 * @return the index (empty array indicates no containment)
+	 */
+	public static int[] getLinearRingIndex(Geometry geometry, Coordinate c) {
+		if (Geometry.LINEAR_RING.equals(geometry.getGeometryType())) {
+			IndexedLinearRing ring = new IndexedLinearRing(geometry);
+			if(ring.containsCoordinate(c)){
+				return ring.getIndex();
+			}
+		} else if (Geometry.POLYGON.equals(geometry.getGeometryType())) {
+			IndexedPolygon polygon = new IndexedPolygon(geometry);
+			for (IndexedLinearRing hole : polygon.getHoles()) {
+				if(hole.containsCoordinate(c)){
+					return hole.getIndex();
+				}
+			}
+			if(polygon.getShell().containsCoordinate(c)) {
+				return polygon.getShell().getIndex();
+			}
+		} else if (Geometry.MULTI_POLYGON.equals(geometry.getGeometryType())) {
+			IndexedMultiPolygon multipolygon = new IndexedMultiPolygon(geometry);
+			for (IndexedPolygon polygon : multipolygon.getPolygons()) {
+				for (IndexedLinearRing hole : polygon.getHoles()) {
+					if(hole.containsCoordinate(c)){
+						return hole.getIndex();
+					}
+				}
+				if(polygon.getShell().containsCoordinate(c)) {
+					return polygon.getShell().getIndex();
+				}
+			}
+		}
+		return new int[0];
 	}
 
 	/**
@@ -755,7 +790,7 @@ public final class GeometryService {
 	private static void validateContainment(IndexedPolygon polygon, IndexedLinearRing ring) {
 		if (ring.isHole()) {
 			// hole in shell
-			if (!polygon.getShell().containsRing(ring)) {
+			if (!polygon.getShell().containsRing(ring) && !ring.isEmpty()) {
 				validationContext.addHoleOutsideShell(ring, polygon.getShell());
 			}
 			// no nested holes

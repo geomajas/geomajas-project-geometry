@@ -31,12 +31,21 @@ public class IndexedMultiPolygon {
 
 	public IndexedMultiPolygon(Geometry geometry) {
 		this.geometry = geometry;
-		for (int i = 0; i < geometry.getGeometries().length; i++) {
-			polygons.add(new IndexedPolygon(geometry.getGeometries()[i], new int[] { i }));
+		if (geometry.getGeometries() != null) {
+			for (int i = 0; i < geometry.getGeometries().length; i++) {
+				polygons.add(new IndexedPolygon(geometry.getGeometries()[i], new int[] { i }));
+			}
 		}
 	}
 
-	
+	public IndexedPolygon getPolygon(int index) {
+		if (index >= 0 && index < polygons.size()) {
+			return polygons.get(index);
+		} else {
+			throw new IllegalArgumentException("Invalid index");
+		}
+	}
+
 	public List<IndexedPolygon> getPolygons() {
 		return polygons;
 	}
@@ -48,6 +57,5 @@ public class IndexedMultiPolygon {
 			return "Can't convert to wkt";
 		}
 	}
-	
-	
+
 }
