@@ -309,38 +309,40 @@ public final class GeometryService {
 		}
 		return validationContext.getState();
 	}
-	
+
 	/**
 	 * Get the index of the (smallest) linear ring of the geometry that contains this coordinate.
+	 * 
 	 * @param geometry
 	 * @param c
 	 * @return the index (empty array indicates no containment)
+	 * @since 1.2.1
 	 */
 	public static int[] getLinearRingIndex(Geometry geometry, Coordinate c) {
 		if (Geometry.LINEAR_RING.equals(geometry.getGeometryType())) {
 			IndexedLinearRing ring = new IndexedLinearRing(geometry);
-			if(ring.containsCoordinate(c)){
+			if (ring.containsCoordinate(c)) {
 				return ring.getIndex();
 			}
 		} else if (Geometry.POLYGON.equals(geometry.getGeometryType())) {
 			IndexedPolygon polygon = new IndexedPolygon(geometry);
 			for (IndexedLinearRing hole : polygon.getHoles()) {
-				if(hole.containsCoordinate(c)){
+				if (hole.containsCoordinate(c)) {
 					return hole.getIndex();
 				}
 			}
-			if(polygon.getShell().containsCoordinate(c)) {
+			if (polygon.getShell().containsCoordinate(c)) {
 				return polygon.getShell().getIndex();
 			}
 		} else if (Geometry.MULTI_POLYGON.equals(geometry.getGeometryType())) {
 			IndexedMultiPolygon multipolygon = new IndexedMultiPolygon(geometry);
 			for (IndexedPolygon polygon : multipolygon.getPolygons()) {
 				for (IndexedLinearRing hole : polygon.getHoles()) {
-					if(hole.containsCoordinate(c)){
+					if (hole.containsCoordinate(c)) {
 						return hole.getIndex();
 					}
 				}
-				if(polygon.getShell().containsCoordinate(c)) {
+				if (polygon.getShell().containsCoordinate(c)) {
 					return polygon.getShell().getIndex();
 				}
 			}

@@ -13,6 +13,7 @@ package org.geomajas.geometry.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.geomajas.annotation.Api;
 import org.geomajas.geometry.indexed.IndexedIntersection;
 import org.geomajas.geometry.indexed.IndexedLineString;
 import org.geomajas.geometry.indexed.IndexedLinearRing;
@@ -30,7 +31,9 @@ import org.geomajas.geometry.service.validation.ValidationViolation;
  * 
  * @author Jan De Moerloose
  * 
+ * @since 1.2.1
  */
+@Api
 public class GeometryValidationContext {
 
 	private List<ValidationViolation> violations = new ArrayList<ValidationViolation>();
@@ -78,14 +81,31 @@ public class GeometryValidationContext {
 		intersections.clear();
 	}
 
+	/**
+	 * Is the geometry valid ?
+	 * @return
+	 */
+	@Api
 	public boolean isValid() {
 		return violations.isEmpty();
 	}
 
+	/**
+	 * Get the list of violations. Warning: this list will be cleared when the next validation is started !
+	 * 
+	 * @return
+	 */
+	@Api
 	public List<ValidationViolation> getViolations() {
 		return violations;
 	}
 
+	/**
+	 * Get the validation state of the geometry. We take the state of the first violation encountered.
+	 * 
+	 * @return the invalid state or {@link GeometryValidationState.VALID} if there are no violations.
+	 */
+	@Api
 	public GeometryValidationState getState() {
 		if (violations.isEmpty()) {
 			return GeometryValidationState.VALID;

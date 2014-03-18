@@ -121,11 +121,9 @@ public class GeometryServiceValidationTest {
 		String wkt = "POLYGON ((0 0, 10 0, 0 0))";
 		Geometry p = WktService.toGeometry(wkt);
 		Assert.assertFalse(GeometryService.isValid(p));
-		Assert.assertEquals(2, GeometryService.getValidationContext().getViolations().size());
+		Assert.assertEquals(1, GeometryService.getValidationContext().getViolations().size());
 		ValidationViolation vv = GeometryService.getValidationContext().getViolations().get(0);
 		Assert.assertTrue(vv instanceof TooFewPointsViolation);
-		vv = GeometryService.getValidationContext().getViolations().get(1);
-		Assert.assertTrue(vv instanceof RingSelfIntersectionViolation);
 	}
 	
 	public com.vividsolutions.jts.geom.Geometry toJts(Geometry g) throws ParseException, WktException {

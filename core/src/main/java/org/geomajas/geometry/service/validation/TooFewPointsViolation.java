@@ -10,6 +10,10 @@
  */
 package org.geomajas.geometry.service.validation;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.geomajas.geometry.Geometry;
 import org.geomajas.geometry.indexed.IndexedLineString;
 import org.geomajas.geometry.indexed.IndexedLinearRing;
 import org.geomajas.geometry.service.GeometryValidationState;
@@ -26,8 +30,11 @@ public class TooFewPointsViolation implements ValidationViolation {
 
 	private IndexedLineString lineString;
 
+	private List<Geometry> geometries;
+
 	public TooFewPointsViolation(IndexedLinearRing ring) {
 		this.ring = ring;
+		this.geometries = Arrays.asList(ring.getGeometry());
 	}
 
 	public TooFewPointsViolation(IndexedLineString lineString) {
@@ -53,6 +60,11 @@ public class TooFewPointsViolation implements ValidationViolation {
 	@Override
 	public GeometryValidationState getState() {
 		return GeometryValidationState.TOO_FEW_POINTS;
+	}
+
+	@Override
+	public List<Geometry> getGeometries() {
+		return geometries;
 	}
 
 }

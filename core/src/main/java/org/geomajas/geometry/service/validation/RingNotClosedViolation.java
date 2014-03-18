@@ -10,6 +10,10 @@
  */
 package org.geomajas.geometry.service.validation;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.geomajas.geometry.Geometry;
 import org.geomajas.geometry.indexed.IndexedLinearRing;
 import org.geomajas.geometry.service.GeometryValidationState;
 
@@ -23,8 +27,11 @@ public class RingNotClosedViolation implements ValidationViolation {
 
 	private IndexedLinearRing ring;
 
+	private List<Geometry> geometries;
+
 	public RingNotClosedViolation(IndexedLinearRing ring) {
 		this.ring = ring;
+		this.geometries = Arrays.asList(ring.getGeometry());
 	}
 
 	public IndexedLinearRing getRing() {
@@ -38,6 +45,11 @@ public class RingNotClosedViolation implements ValidationViolation {
 	@Override
 	public GeometryValidationState getState() {
 		return GeometryValidationState.RING_NOT_CLOSED;
+	}
+
+	@Override
+	public List<Geometry> getGeometries() {
+		return geometries;
 	}
 
 }

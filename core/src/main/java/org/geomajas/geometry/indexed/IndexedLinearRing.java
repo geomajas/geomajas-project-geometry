@@ -97,7 +97,7 @@ public class IndexedLinearRing {
 		}
 		return result;
 	}
-	
+
 	public boolean containsCoordinate(Coordinate coordinate) {
 		return MathService.isWithin(geometry, coordinate) || MathService.touches(geometry, coordinate);
 	}
@@ -107,7 +107,7 @@ public class IndexedLinearRing {
 	}
 
 	public boolean containsRing(IndexedLinearRing ring) {
-		if(isEmpty() || ring.isEmpty()) {
+		if (isEmpty() || ring.isEmpty()) {
 			return false;
 		}
 		for (Coordinate c : ring.getGeometry().getCoordinates()) {

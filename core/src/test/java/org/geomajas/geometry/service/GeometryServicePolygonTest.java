@@ -147,8 +147,8 @@ public class GeometryServicePolygonTest {
 		Assert.assertEquals(GeometryValidationState.HOLE_OUTSIDE_SHELL, GeometryService.validate(p, new int[] { 1 }));
 		// invalid (self-intersect)
 		p = WktService.toGeometry("POLYGON((2 0, 1 0, 1 1, 0 1, 2 0))");
-		Assert.assertFalse(GeometryService.isValid(p, new int[] { 0, 0 }));
-		Assert.assertEquals(GeometryValidationState.RING_SELF_INTERSECTION, GeometryService.validate(p, new int[] { 0, 0 }));
+		Assert.assertFalse(GeometryService.isValid(p, new int[] { 0, 1 }));
+		Assert.assertEquals(GeometryValidationState.RING_SELF_INTERSECTION, GeometryService.validate(p, new int[] { 0, 1 }));
 	}
 
 	@Test

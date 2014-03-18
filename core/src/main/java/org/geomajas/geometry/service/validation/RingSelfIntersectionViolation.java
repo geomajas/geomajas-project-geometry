@@ -10,6 +10,10 @@
  */
 package org.geomajas.geometry.service.validation;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.geomajas.geometry.Geometry;
 import org.geomajas.geometry.indexed.IndexedEdge;
 import org.geomajas.geometry.service.GeometryValidationState;
 
@@ -25,9 +29,12 @@ public class RingSelfIntersectionViolation implements ValidationViolation {
 
 	private IndexedEdge edge2;
 
+	private List<Geometry> geometries;
+
 	public RingSelfIntersectionViolation(IndexedEdge edge1, IndexedEdge edge2) {
 		this.edge1 = edge1;
 		this.edge2 = edge2;
+		this.geometries = Arrays.asList(edge1.getGeometry(), edge2.getGeometry());
 	}
 
 	public IndexedEdge getEdge1() {
@@ -41,6 +48,11 @@ public class RingSelfIntersectionViolation implements ValidationViolation {
 	@Override
 	public GeometryValidationState getState() {
 		return GeometryValidationState.RING_SELF_INTERSECTION;
+	}
+
+	@Override
+	public List<Geometry> getGeometries() {
+		return geometries;
 	}
 
 }

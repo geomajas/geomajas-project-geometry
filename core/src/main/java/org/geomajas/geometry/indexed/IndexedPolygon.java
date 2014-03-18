@@ -40,7 +40,7 @@ public class IndexedPolygon {
 	public IndexedPolygon(Geometry geometry, int[] index) {
 		this.geometry = geometry;
 		this.index = index;
-		if(geometry.getGeometries() != null) {
+		if (geometry.getGeometries() != null) {
 			shell = new IndexedLinearRing(this, geometry.getGeometries()[0], copyAppend(index, 0));
 
 			for (int i = 1; i < geometry.getGeometries().length; i++) {

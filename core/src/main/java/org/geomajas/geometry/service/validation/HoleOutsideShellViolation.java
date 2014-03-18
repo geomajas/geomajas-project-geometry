@@ -10,6 +10,10 @@
  */
 package org.geomajas.geometry.service.validation;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.geomajas.geometry.Geometry;
 import org.geomajas.geometry.indexed.IndexedLinearRing;
 import org.geomajas.geometry.service.GeometryValidationState;
 
@@ -25,9 +29,12 @@ public class HoleOutsideShellViolation implements ValidationViolation {
 
 	private IndexedLinearRing shell;
 
+	private List<Geometry> geometries;
+
 	public HoleOutsideShellViolation(IndexedLinearRing hole, IndexedLinearRing shell) {
 		this.hole = hole;
 		this.shell = shell;
+		this.geometries = Arrays.asList(hole.getGeometry(), shell.getGeometry());
 	}
 
 	public IndexedLinearRing getHole() {
@@ -41,6 +48,11 @@ public class HoleOutsideShellViolation implements ValidationViolation {
 	@Override
 	public GeometryValidationState getState() {
 		return GeometryValidationState.HOLE_OUTSIDE_SHELL;
+	}
+
+	@Override
+	public List<Geometry> getGeometries() {
+		return geometries;
 	}
 
 }
