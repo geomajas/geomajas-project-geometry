@@ -14,9 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.geomajas.annotation.Api;
-import org.geomajas.geometry.indexed.IndexedIntersection;
-import org.geomajas.geometry.indexed.IndexedLineString;
-import org.geomajas.geometry.indexed.IndexedLinearRing;
 import org.geomajas.geometry.service.validation.HoleOutsideShellViolation;
 import org.geomajas.geometry.service.validation.NestedHolesViolation;
 import org.geomajas.geometry.service.validation.NestedShellsViolation;
@@ -31,48 +28,44 @@ import org.geomajas.geometry.service.validation.ValidationViolation;
  * 
  * @author Jan De Moerloose
  * 
- * @since 1.2.1
+ * @since 1.3.0
  */
 @Api
 public class GeometryValidationContext {
 
 	private List<ValidationViolation> violations = new ArrayList<ValidationViolation>();
 
-	private List<IndexedIntersection> intersections = new ArrayList<IndexedIntersection>();
+	private List<IndexPair> intersections = new ArrayList<IndexPair>();
 
-	public void addHoleOutsideShell(IndexedLinearRing hole, IndexedLinearRing shell) {
+	public void addHoleOutsideShell(GeometryIndex hole, GeometryIndex shell) {
 		violations.add(new HoleOutsideShellViolation(hole, shell));
 	}
 
-	public void addNestedHoles(IndexedLinearRing hole, IndexedLinearRing nestedHole) {
+	public void addNestedHoles(GeometryIndex hole, GeometryIndex nestedHole) {
 		violations.add(new NestedHolesViolation(hole, nestedHole));
 	}
 
-	public void addNestedShells(IndexedLinearRing shell, IndexedLinearRing nestedShell) {
+	public void addNestedShells(GeometryIndex shell, GeometryIndex nestedShell) {
 		violations.add(new NestedShellsViolation(shell, nestedShell));
 	}
 
-	public void addNonClosedRing(IndexedLinearRing ring) {
+	public void addNonClosedRing(GeometryIndex ring) {
 		violations.add(new RingNotClosedViolation(ring));
 	}
 
-	public void addTooFewPoints(IndexedLinearRing ring) {
-		violations.add(new TooFewPointsViolation(ring));
+	public void addTooFewPoints(GeometryIndex geometry) {
+		violations.add(new TooFewPointsViolation(geometry));
 	}
 
-	public void addTooFewPoints(IndexedLineString lineString) {
-		violations.add(new TooFewPointsViolation(lineString));
-	}
-
-	public void addSelfIntersection(IndexedIntersection intersection) {
-		if (!intersectionHandled(intersection)) {
-			violations.add(new SelfIntersectionViolation(intersection.getEdge1(), intersection.getEdge2()));
+	public void addSelfIntersection(GeometryIndex edge1, GeometryIndex edge2) {
+		if (!intersectionHandled(edge1, edge2)) {
+			violations.add(new SelfIntersectionViolation(edge1, edge2));
 		}
 	}
 
-	public void addRingSelfIntersection(IndexedIntersection intersection) {
-		if (!intersectionHandled(intersection)) {
-			violations.add(new RingSelfIntersectionViolation(intersection.getEdge1(), intersection.getEdge2()));
+	public void addRingSelfIntersection(GeometryIndex edge1, GeometryIndex edge2) {
+		if (!intersectionHandled(edge1, edge2)) {
+			violations.add(new RingSelfIntersectionViolation(edge1, edge2));
 		}
 	}
 
@@ -83,6 +76,7 @@ public class GeometryValidationContext {
 
 	/**
 	 * Is the geometry valid ?
+	 * 
 	 * @return
 	 */
 	@Api
@@ -114,14 +108,41 @@ public class GeometryValidationContext {
 		}
 	}
 
-	private boolean intersectionHandled(IndexedIntersection intersection) {
-		for (IndexedIntersection i : intersections) {
-			if (i.equalEdges(intersection)) {
+	private boolean intersectionHandled(GeometryIndex index1, GeometryIndex index2) {
+		IndexPair pair = new IndexPair(index1, index2);
+
+		for (IndexPair i : intersections) {
+			if (i.equalPair(pair)) {
 				return true;
 			}
 		}
-		intersections.add(intersection);
+		intersections.add(pair);
 		return false;
+	}
+
+	/**
+	 * A pair of indices for checking equal pairs.
+	 * 
+	 * @author Jan De Moerloose
+	 * 
+	 */
+	private class IndexPair {
+
+		private GeometryIndex index1;
+
+		private GeometryIndex index2;
+
+		public IndexPair(GeometryIndex index1, GeometryIndex index2) {
+			super();
+			this.index1 = index1;
+			this.index2 = index2;
+		}
+
+		public boolean equalPair(IndexPair other) {
+			return (other.index1.equals(index1) && other.index2.equals(index2) || other.index1.equals(index2)
+					&& other.index2.equals(index1));
+		}
+
 	}
 
 }

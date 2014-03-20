@@ -13,7 +13,7 @@ package org.geomajas.geometry.service.validation;
 import java.util.List;
 
 import org.geomajas.annotation.Api;
-import org.geomajas.geometry.Geometry;
+import org.geomajas.geometry.service.GeometryIndex;
 import org.geomajas.geometry.service.GeometryValidationState;
 
 /**
@@ -21,7 +21,7 @@ import org.geomajas.geometry.service.GeometryValidationState;
  * 
  * @author Jan De Moerloose
  * 
- * @since 1.2.1
+ * @since 1.3.0
  */
 @Api(allMethods = true)
 public interface ValidationViolation {
@@ -34,9 +34,9 @@ public interface ValidationViolation {
 	GeometryValidationState getState();
 
 	/**
-	 * Get the list of geometries that are causing the invalid state.
+	 * Get the list of geometry indices of the sub-geometries/edges that are causing the invalid state.
 	 * 
 	 * @return
 	 */
-	List<Geometry> getGeometries();
+	List<GeometryIndex> getGeometryIndices();
 }

@@ -13,35 +13,53 @@ package org.geomajas.geometry.service.validation;
 import java.util.Arrays;
 import java.util.List;
 
-import org.geomajas.geometry.Geometry;
-import org.geomajas.geometry.indexed.IndexedLinearRing;
+import org.geomajas.annotation.Api;
+import org.geomajas.geometry.service.GeometryIndex;
 import org.geomajas.geometry.service.GeometryValidationState;
 
 /**
  * Violation for nested holes.
  * 
  * @author Jan De Moerloose
+ * @since 1.3.0
  * 
  */
+@Api(allMethods = true)
 public class NestedHolesViolation implements ValidationViolation {
 
-	private IndexedLinearRing hole;
+	private GeometryIndex hole;
 
-	private IndexedLinearRing nestedHole;
+	private GeometryIndex nestedHole;
 
-	private List<Geometry> geometries;
+	private List<GeometryIndex> indices;
 
-	public NestedHolesViolation(IndexedLinearRing hole, IndexedLinearRing nestedHole) {
+	/**
+	 * Constructor (internal use only).
+	 * 
+	 * @param hole
+	 * @param nestedHole
+	 */
+	public NestedHolesViolation(GeometryIndex hole, GeometryIndex nestedHole) {
 		this.hole = hole;
 		this.nestedHole = nestedHole;
-		this.geometries = Arrays.asList(hole.getGeometry(), nestedHole.getGeometry());
+		this.indices = Arrays.asList(hole, nestedHole);
 	}
 
-	public IndexedLinearRing getHole() {
+	/**
+	 * Get the index of the hole.
+	 * 
+	 * @return
+	 */
+	public GeometryIndex getHoleIndex() {
 		return hole;
 	}
 
-	public IndexedLinearRing getNestedHole() {
+	/**
+	 * Get the index of the nested hole.
+	 * 
+	 * @return
+	 */
+	public GeometryIndex getNestedHoleIndex() {
 		return nestedHole;
 	}
 
@@ -51,8 +69,8 @@ public class NestedHolesViolation implements ValidationViolation {
 	}
 
 	@Override
-	public List<Geometry> getGeometries() {
-		return geometries;
+	public List<GeometryIndex> getGeometryIndices() {
+		return indices;
 	}
 
 }

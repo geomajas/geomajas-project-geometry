@@ -21,6 +21,8 @@ import com.vividsolutions.jts.io.WKTReader;
 
 public class GeometryServiceValidationTest {
 
+	private GeometryIndexService indexService = new GeometryIndexService();
+
 	@Test
 	public void testHoleOutsideShell() throws Exception {
 		String wkt = "POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0),(2 2, 2 3,  3 3, 3 2, 2 2))";
@@ -33,8 +35,8 @@ public class GeometryServiceValidationTest {
 		ValidationViolation vv = GeometryService.getValidationContext().getViolations().get(0);
 		Assert.assertTrue(vv instanceof HoleOutsideShellViolation);
 		HoleOutsideShellViolation v = (HoleOutsideShellViolation) vv;
-		Assert.assertEquals(jts.getInteriorRingN(0), toJts(v.getHole().getGeometry()));
-		Assert.assertEquals(jts.getExteriorRing(), toJts(v.getShell().getGeometry()));
+		Assert.assertEquals(jts.getInteriorRingN(0), toJts(v.getHoleIndex(), p));
+		Assert.assertEquals(jts.getExteriorRing(), toJts(v.getShellIndex(), p));
 	}
 
 	@Test
@@ -48,8 +50,8 @@ public class GeometryServiceValidationTest {
 		ValidationViolation vv = GeometryService.getValidationContext().getViolations().get(0);
 		Assert.assertTrue(vv instanceof NestedHolesViolation);
 		NestedHolesViolation v = (NestedHolesViolation) vv;
-		Assert.assertEquals(jts.getInteriorRingN(0), toJts(v.getHole().getGeometry()));
-		Assert.assertEquals(jts.getInteriorRingN(1), toJts(v.getNestedHole().getGeometry()));
+		Assert.assertEquals(jts.getInteriorRingN(0), toJts(v.getHoleIndex(), p));
+		Assert.assertEquals(jts.getInteriorRingN(1), toJts(v.getNestedHoleIndex(), p));
 	}
 
 	@Test
@@ -63,8 +65,8 @@ public class GeometryServiceValidationTest {
 		ValidationViolation vv = GeometryService.getValidationContext().getViolations().get(0);
 		Assert.assertTrue(vv instanceof NestedShellsViolation);
 		NestedShellsViolation v = (NestedShellsViolation) vv;
-		Assert.assertEquals(((Polygon) jts.getGeometryN(0)).getExteriorRing(), toJts(v.getShell().getGeometry()));
-		Assert.assertEquals(((Polygon) jts.getGeometryN(1)).getExteriorRing(), toJts(v.getNestedShell().getGeometry()));
+		Assert.assertEquals(((Polygon) jts.getGeometryN(0)).getExteriorRing(), toJts(v.getShellIndex(), p));
+		Assert.assertEquals(((Polygon) jts.getGeometryN(1)).getExteriorRing(), toJts(v.getNestedShellIndex(), p));
 	}
 
 	@Test
@@ -78,7 +80,7 @@ public class GeometryServiceValidationTest {
 		ValidationViolation vv = GeometryService.getValidationContext().getViolations().get(0);
 		Assert.assertTrue(vv instanceof RingNotClosedViolation);
 		RingNotClosedViolation v = (RingNotClosedViolation) vv;
-		Assert.assertEquals(jts, toJts(v.getRing().getGeometry()));
+		Assert.assertEquals(jts, toJts(v.getRingIndex(), p));
 	}
 
 	@Test
@@ -94,8 +96,8 @@ public class GeometryServiceValidationTest {
 		RingSelfIntersectionViolation v = (RingSelfIntersectionViolation) vv;
 		LineString line1 = (LineString) toJts("LINESTRING (8 2, 2 8)");
 		LineString line2 = (LineString) toJts("LINESTRING (8 8, 2 2)");
-		LineString actual1 = (LineString) toJts(v.getEdge1().getGeometry());
-		LineString actual2 = (LineString) toJts(v.getEdge2().getGeometry());
+		LineString actual1 = (LineString) toJts(v.getEdge1Index(), p);
+		LineString actual2 = (LineString) toJts(v.getEdge2Index(), p);
 		if (!line1.equals(actual1)) {
 			Assert.assertTrue(line1.equals(actual2) && line2.equals(actual1));
 		} else {
@@ -132,6 +134,10 @@ public class GeometryServiceValidationTest {
 
 	public com.vividsolutions.jts.geom.Geometry toJts(String wkt) throws ParseException, WktException {
 		return new WKTReader().read(wkt);
+	}
+
+	private com.vividsolutions.jts.geom.Geometry toJts(GeometryIndex index, Geometry geometry)  throws Exception{
+		return toJts(indexService.getGeometry(geometry, index));
 	}
 
 }

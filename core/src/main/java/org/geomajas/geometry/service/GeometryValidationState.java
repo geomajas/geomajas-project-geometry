@@ -18,7 +18,7 @@ import org.geomajas.annotation.Api;
  * 
  * @author Jan De Moerloose
  * 
- * @since 1.2.1
+ * @since 1.3.0
  */
 @Api
 public enum GeometryValidationState {

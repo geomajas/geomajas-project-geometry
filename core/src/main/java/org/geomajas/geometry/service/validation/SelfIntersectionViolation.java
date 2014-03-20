@@ -13,35 +13,53 @@ package org.geomajas.geometry.service.validation;
 import java.util.Arrays;
 import java.util.List;
 
-import org.geomajas.geometry.Geometry;
-import org.geomajas.geometry.indexed.IndexedEdge;
+import org.geomajas.annotation.Api;
+import org.geomajas.geometry.service.GeometryIndex;
 import org.geomajas.geometry.service.GeometryValidationState;
 
 /**
  * Violation that indicates a geometry self-intersects.
  * 
  * @author Jan De Moerloose
+ * @since 1.3.0
  * 
  */
+@Api(allMethods = true)
 public class SelfIntersectionViolation implements ValidationViolation {
 
-	private IndexedEdge edge1;
+	private GeometryIndex edge1;
 
-	private IndexedEdge edge2;
+	private GeometryIndex edge2;
 
-	private List<Geometry> geometries;
+	private List<GeometryIndex> indices;
 
-	public SelfIntersectionViolation(IndexedEdge edge1, IndexedEdge edge2) {
+	/**
+	 * Constructor (internal use only).
+	 * 
+	 * @param edge1
+	 * @param edge2
+	 */
+	public SelfIntersectionViolation(GeometryIndex edge1, GeometryIndex edge2) {
 		this.edge1 = edge1;
 		this.edge2 = edge2;
-		this.geometries = Arrays.asList(edge1.getGeometry(), edge2.getGeometry());
+		this.indices = Arrays.asList(edge1, edge2);
 	}
 
-	public IndexedEdge getEdge1() {
+	/**
+	 * Get the index of the first intersecting edge.
+	 * 
+	 * @return
+	 */
+	public GeometryIndex getEdge1Index() {
 		return edge1;
 	}
 
-	public IndexedEdge getEdge2() {
+	/**
+	 * Get the index of the second intersecting edge.
+	 * 
+	 * @return
+	 */
+	public GeometryIndex getEdge2Index() {
 		return edge2;
 	}
 
@@ -50,9 +68,10 @@ public class SelfIntersectionViolation implements ValidationViolation {
 		return GeometryValidationState.SELF_INTERSECTION;
 	}
 
+
 	@Override
-	public List<Geometry> getGeometries() {
-		return geometries;
+	public List<GeometryIndex> getGeometryIndices() {
+		return indices;
 	}
 
 }

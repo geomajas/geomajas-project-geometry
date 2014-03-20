@@ -13,33 +13,41 @@ package org.geomajas.geometry.service.validation;
 import java.util.Arrays;
 import java.util.List;
 
-import org.geomajas.geometry.Geometry;
-import org.geomajas.geometry.indexed.IndexedLinearRing;
+import org.geomajas.annotation.Api;
+import org.geomajas.geometry.service.GeometryIndex;
 import org.geomajas.geometry.service.GeometryValidationState;
 
 /**
  * Violation that indicates a ring was not closed.
  * 
  * @author Jan De Moerloose
+ * @since 1.3.0
  * 
  */
+@Api(allMethods = true)
 public class RingNotClosedViolation implements ValidationViolation {
 
-	private IndexedLinearRing ring;
+	private GeometryIndex ring;
 
-	private List<Geometry> geometries;
+	private List<GeometryIndex> indices;
 
-	public RingNotClosedViolation(IndexedLinearRing ring) {
+	/**
+	 * Constructor (internal use only).
+	 * 
+	 * @param ring
+	 */
+	public RingNotClosedViolation(GeometryIndex ring) {
 		this.ring = ring;
-		this.geometries = Arrays.asList(ring.getGeometry());
+		this.indices = Arrays.asList(ring);
 	}
 
-	public IndexedLinearRing getRing() {
+	/**
+	 * Get the index of the ring.
+	 * 
+	 * @return
+	 */
+	public GeometryIndex getRingIndex() {
 		return ring;
-	}
-
-	public void setRing(IndexedLinearRing ring) {
-		this.ring = ring;
 	}
 
 	@Override
@@ -47,9 +55,10 @@ public class RingNotClosedViolation implements ValidationViolation {
 		return GeometryValidationState.RING_NOT_CLOSED;
 	}
 
+
 	@Override
-	public List<Geometry> getGeometries() {
-		return geometries;
+	public List<GeometryIndex> getGeometryIndices() {
+		return indices;
 	}
 
 }

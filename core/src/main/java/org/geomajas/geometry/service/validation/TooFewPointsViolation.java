@@ -13,48 +13,39 @@ package org.geomajas.geometry.service.validation;
 import java.util.Arrays;
 import java.util.List;
 
-import org.geomajas.geometry.Geometry;
-import org.geomajas.geometry.indexed.IndexedLineString;
-import org.geomajas.geometry.indexed.IndexedLinearRing;
+import org.geomajas.annotation.Api;
+import org.geomajas.geometry.service.GeometryIndex;
 import org.geomajas.geometry.service.GeometryValidationState;
 
 /**
  * Violation that indicates a geometry has too few points.
  * 
  * @author Jan De Moerloose
+ * @since 1.3.0
  * 
  */
+@Api(allMethods = true)
 public class TooFewPointsViolation implements ValidationViolation {
 
-	private IndexedLinearRing ring;
+	private GeometryIndex index;
 
-	private IndexedLineString lineString;
+	private List<GeometryIndex> indices;
 
-	private List<Geometry> geometries;
-
-	public TooFewPointsViolation(IndexedLinearRing ring) {
-		this.ring = ring;
-		this.geometries = Arrays.asList(ring.getGeometry());
+	/**
+	 * Constructor (internal use only).
+	 * 
+	 * @param index
+	 */
+	public TooFewPointsViolation(GeometryIndex index) {
+		this.indices = Arrays.asList(index);
 	}
 
-	public TooFewPointsViolation(IndexedLineString lineString) {
-		this.lineString = lineString;
-	}
-
-	public IndexedLinearRing getRing() {
-		return ring;
-	}
-
-	public void setRing(IndexedLinearRing ring) {
-		this.ring = ring;
-	}
-
-	public IndexedLineString getLineString() {
-		return lineString;
-	}
-
-	public void setLineString(IndexedLineString lineString) {
-		this.lineString = lineString;
+	/**
+	 * Get the index of the geometry (linestring or linear ring that has too few points).
+	 * @return
+	 */
+	public GeometryIndex getGeometryIndex() {
+		return index;
 	}
 
 	@Override
@@ -63,8 +54,8 @@ public class TooFewPointsViolation implements ValidationViolation {
 	}
 
 	@Override
-	public List<Geometry> getGeometries() {
-		return geometries;
+	public List<GeometryIndex> getGeometryIndices() {
+		return indices;
 	}
 
 }
