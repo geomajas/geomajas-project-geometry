@@ -283,7 +283,7 @@ public class GeometryIndexService {
 	 * @return true or false.
 	 */
 	public boolean isShell(GeometryIndex index) {
-		return isGeometry(index) && index.getValue() == 0;
+		return isGeometry(index) && getValue(index) == 0;
 	}
 
 

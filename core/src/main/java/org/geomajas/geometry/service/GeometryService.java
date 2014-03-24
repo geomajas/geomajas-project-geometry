@@ -348,15 +348,14 @@ public final class GeometryService {
 				IndexedMultiPolygon multipolygon = helper.createMultiPolygon(geometry);
 				switch (indexService.getType(index)) {
 					case TYPE_GEOMETRY:
-						if (index.getChild().getType() == GeometryIndexType.TYPE_GEOMETRY) {
+						if (index.getChild() == null) {
 							// polygon, validate containment
 							IndexedPolygon polygon = multipolygon.getPolygon(index);
 							validateContainment(multipolygon, polygon);
 						} else {
 							// ring, validate containment
-							IndexedPolygon polygon = multipolygon.getPolygon(index);
-							IndexedLinearRing ring = polygon.getRing(index);
-							validateContainment(polygon, ring);
+							IndexedLinearRing ring = multipolygon.getRing(index);
+							validateContainment(ring.getPolygon(), ring);
 						}
 						break;
 					case TYPE_EDGE:

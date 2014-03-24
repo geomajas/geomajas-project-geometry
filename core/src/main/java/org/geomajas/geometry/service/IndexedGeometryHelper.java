@@ -462,7 +462,7 @@ class IndexedGeometryHelper {
 		}
 
 		public IndexedEdge getEdge(GeometryIndex index) throws GeometryIndexNotFoundException {
-			IndexedLinearRing ring = getRing(indexService.getParent(index));
+			IndexedLinearRing ring = getRing(index);
 			return ring.getEdge(index.getChild());
 		}
 
@@ -520,8 +520,14 @@ class IndexedGeometryHelper {
 			}
 		}
 
+		public IndexedLinearRing getRing(GeometryIndex index) throws GeometryIndexNotFoundException {
+			IndexedPolygon polygon = getPolygon(index);
+			return polygon.getRing(index.getChild());
+		}
+
 		public IndexedEdge getEdge(GeometryIndex index) throws GeometryIndexNotFoundException {
-			return getPolygon(index).getEdge(index);
+			IndexedPolygon polygon = getPolygon(index);
+			return polygon.getEdge(index.getChild());
 		}
 
 		public List<IndexedEdge> getAdjacentEdges(GeometryIndex index) throws GeometryIndexNotFoundException {
