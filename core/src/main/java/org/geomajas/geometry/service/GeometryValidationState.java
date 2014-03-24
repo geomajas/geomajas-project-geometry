@@ -11,12 +11,16 @@
 
 package org.geomajas.geometry.service;
 
+import org.geomajas.annotation.Api;
+
 /**
  * Indicates the valid/invalid state of a geometry and its cause (javadoc copied from JTS).
  * 
  * @author Jan De Moerloose
  * 
+ * @since 1.3.0
  */
+@Api
 public enum GeometryValidationState {
 	/**
 	 * Indicates a valid geometry.

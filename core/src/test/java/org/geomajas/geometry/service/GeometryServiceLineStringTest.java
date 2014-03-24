@@ -103,12 +103,15 @@ public class GeometryServiceLineStringTest {
 
 	@Test
 	public void isValid() {
+		Geometry empty = new Geometry(Geometry.LINE_STRING, SRID, 0);
 		Geometry noPoints = new Geometry(Geometry.LINE_STRING, SRID, 0);
 		noPoints.setCoordinates(new Coordinate[] {});
 		Geometry onePoint = new Geometry(Geometry.LINE_STRING, SRID, 0);
 		onePoint.setCoordinates(new Coordinate[] { new Coordinate(10.0, 10.0) });
 		Assert.assertEquals(jts.isValid(), GeometryService.isValid(gwt));
-		Assert.assertTrue(GeometryService.isValid(noPoints));
+		Assert.assertTrue(GeometryService.isValid(empty));
+		// changed to false from last version, but this was simply wrong !!!
+		Assert.assertFalse(GeometryService.isValid(noPoints));
 		Assert.assertFalse(GeometryService.isValid(onePoint));
 	}
 

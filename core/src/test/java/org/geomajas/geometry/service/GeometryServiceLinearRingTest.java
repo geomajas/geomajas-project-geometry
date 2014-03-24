@@ -34,6 +34,8 @@ import com.vividsolutions.jts.io.WKTReader;
  */
 public class GeometryServiceLinearRingTest {
 
+	private GeometryIndexService indexService = new GeometryIndexService();
+
 	private static final int SRID = 4326;
 
 	private static final double DELTA = 1E-4;
@@ -126,14 +128,32 @@ public class GeometryServiceLinearRingTest {
 		Geometry ring = WktService.toGeometry("POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))").getGeometries()[0];
 		Assert.assertTrue(GeometryService.isValid(ring));
 		for (int i = 0; i < 4; i++) {
+			Assert.assertTrue(GeometryService.isValid(ring, indexService.create(GeometryIndexType.TYPE_EDGE, i)));
+		}
+		// butterfly
+		ring = WktService.toGeometry("POLYGON((0 0, 1 0, 0 1, 1 1, 0 0))").getGeometries()[0];
+		Assert.assertFalse(GeometryService.isValid(ring));
+		Assert.assertTrue(GeometryService.isValid(ring, indexService.create(GeometryIndexType.TYPE_EDGE, 0)));
+		Assert.assertFalse(GeometryService.isValid(ring, indexService.create(GeometryIndexType.TYPE_EDGE, 1)));
+		Assert.assertTrue(GeometryService.isValid(ring, indexService.create(GeometryIndexType.TYPE_EDGE, 2)));
+		Assert.assertFalse(GeometryService.isValid(ring, indexService.create(GeometryIndexType.TYPE_EDGE, 3)));
+	}
+	
+	@Test
+	public void isValid2Array() throws WktException {
+		// valid ring
+		Geometry ring = WktService.toGeometry("POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))").getGeometries()[0];
+		Assert.assertTrue(GeometryService.isValid(ring));
+		for (int i = 0; i < 4; i++) {
 			Assert.assertTrue(GeometryService.isValid(ring, new int[] { i }));
 		}
 		// butterfly
 		ring = WktService.toGeometry("POLYGON((0 0, 1 0, 0 1, 1 1, 0 0))").getGeometries()[0];
 		Assert.assertFalse(GeometryService.isValid(ring));
-		for (int i = 0; i < 4; i++) {
-			Assert.assertFalse(GeometryService.isValid(ring, new int[] { i }));
-		}
+		Assert.assertTrue(GeometryService.isValid(ring, new int[] { 0 }));
+		Assert.assertFalse(GeometryService.isValid(ring, new int[] { 1 }));
+		Assert.assertTrue(GeometryService.isValid(ring, new int[] { 2 }));
+		Assert.assertFalse(GeometryService.isValid(ring, new int[] { 3 }));
 	}
 
 	@Test
@@ -163,7 +183,7 @@ public class GeometryServiceLinearRingTest {
 		Assert.assertEquals(c2.getY(), c.getY(), DELTA);
 		Assert.assertEquals(c2.getX(), c.getX(), DELTA);
 	}
-	
+
 	@Test
 	public void transformTest() throws WktException {
 		Geometry transformed = GeometryService.transform(gwt, matrix);
